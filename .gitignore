@@ -1,3 +1,5 @@
 OldVersions/
+*-backups/
 
 *.bak
+fp-info-cache

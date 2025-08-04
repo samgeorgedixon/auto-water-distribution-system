@@ -20,9 +20,9 @@
 - Program
 	- Sensor Logic
 	- Pump / Valve Algorithm
-	- User Control (Control Panel / Web Interface)
+	- User Control (Control Panel / Interface)
 
-# Parts
+## Parts
 - Case (3D Print)
 - Microcontroller (esp32)
 - Water Valves

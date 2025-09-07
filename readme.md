@@ -26,9 +26,9 @@
 - Case (3D Print)
 - Microcontroller (esp32)
 - Water Valves
-- Wires
+- Water Pumps
 - Solar Panels / Battery
-- Soil Moisture Sensor
-- Light Intensity Sensor
-- Piping
+- Temperature Sensor
 - Water Tank / Supply
+- Wires
+- Piping

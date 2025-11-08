@@ -527,11 +527,23 @@
           "label": "DNP",
           "name": "${DNP}",
           "show": true
+        },
+        {
+          "group_by": false,
+          "label": "#",
+          "name": "${ITEM_NUMBER}",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "Description",
+          "name": "Description",
+          "show": false
         }
       ],
       "filter_string": "",
       "group_symbols": true,
-      "name": "Grouped By Value",
+      "name": "",
       "sort_asc": true,
       "sort_field": "Reference"
     },
@@ -564,7 +576,7 @@
     },
     "net_format_name": "",
     "page_layout_descr_file": "",
-    "plot_directory": "",
+    "plot_directory": "C:/Users/sam/Downloads/",
     "spice_current_sheet_as_root": false,
     "spice_external_command": "spice \"%I\"",
     "spice_model_current_sheet_as_root": true,
@@ -578,14 +590,6 @@
     [
       "37919447-3512-464b-b58e-b937b0459c11",
       "Root"
-    ],
-    [
-      "37e55ca3-710d-4f13-b7b9-2f4694f86455",
-      "valve-switch_module"
-    ],
-    [
-      "190063bd-fa7a-42f1-b9f2-9c0e70658f72",
-      "pump-switch_module"
     ]
   ],
   "text_variables": {}

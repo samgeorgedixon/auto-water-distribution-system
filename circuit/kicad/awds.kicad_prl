@@ -74,7 +74,7 @@
     "ssh_key": ""
   },
   "meta": {
-    "filename": "circuit_awds.kicad_prl",
+    "filename": "awds.kicad_prl",
     "version": 3
   },
   "project": {

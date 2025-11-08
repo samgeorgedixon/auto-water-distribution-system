@@ -1,0 +1,14 @@
+(kicad_sch
+	(version 20231120)
+	(generator "eeschema")
+	(generator_version "8.0")
+	(uuid "ca34c1e3-6889-4ecc-ad06-4cc4bb5faf4b")
+	(paper "A3")
+	(title_block
+		(title "PUMP SWITCH MODULE - AWDS CIRCUIT")
+		(date "08/11/25")
+		(rev "1")
+		(company "SAM DIXON")
+	)
+	(lib_symbols)
+)

@@ -431,7 +431,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "circuit_awds.kicad_pro",
+    "filename": "awds.kicad_pro",
     "version": 1
   },
   "net_settings": {
@@ -580,8 +580,12 @@
       "Root"
     ],
     [
-      "4283e5b5-db1d-4a92-9a85-7d7c1fb284cd",
-      "sensors-block"
+      "37e55ca3-710d-4f13-b7b9-2f4694f86455",
+      "valve-switch_module"
+    ],
+    [
+      "190063bd-fa7a-42f1-b9f2-9c0e70658f72",
+      "pump-switch_module"
     ]
   ],
   "text_variables": {}

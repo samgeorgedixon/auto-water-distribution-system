@@ -1,4 +1,4 @@
-# Auto Water Distribution System (AWDS)
+# Regulated Irrigation System (RIS)
 
 ## Goals
 - Water Plants

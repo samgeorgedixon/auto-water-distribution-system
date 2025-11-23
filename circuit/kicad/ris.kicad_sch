@@ -5,7 +5,7 @@
 	(uuid "37919447-3512-464b-b58e-b937b0459c11")
 	(paper "A3")
 	(title_block
-		(title "AWDS CIRCUIT")
+		(title "RIS CIRCUIT")
 		(date "12/11/25")
 		(rev "1")
 		(company "SAM DIXON")
@@ -5404,7 +5404,7 @@
 		)
 		(uuid e27246f7-5f72-4a42-a055-f40858eb0a6f)
 	)
-	(text "AWDS CIRCUIT"
+	(text "REGULATED IRRIGATION SYSTEM - CIRCUIT"
 		(exclude_from_sim no)
 		(at 24.384 24.638 0)
 		(effects

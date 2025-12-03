@@ -5,6 +5,7 @@
 - Work in Any Environment and Scale (Greenhouse / Allotment / Farm)
 - Reliable (Works for Weeks / Months)
 - Sustainable (Self Sufficient: Solar / Rain)
+- Relatively Cheap (< ~£100)
 
 ## Parts
 - Case (3D Print)

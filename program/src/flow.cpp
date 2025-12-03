@@ -2,10 +2,12 @@
 #include <Arduino.h>
 
 #include "components.h"
+#include "routines.h"
 #include "network.h"
 
 void SetupProgram() {
     SetupComponents();
+    ResetToAllPerminantRoutines();
 }
 
 bool WifiOn = false;

@@ -1,7 +1,10 @@
 #include "components.h"
 
+#include <stdint.h>
+
 #include <Arduino.h>
-#include "DHT.h"
+#include <DHT.h>
+#include <time.h>
 
 #define LED_R_PIN 16            // Out
 #define LED_G_PIN 17            // Out
@@ -15,7 +18,7 @@
 
 DHT dht(TEMP_SENSOR_PIN, DHT22);
 
-std::vector<bool> currentPortStates;
+std::vector<uint8_t> currentPortStates;
 
 void SetupComponents() {
     pinMode(LED_R_PIN, OUTPUT);
@@ -36,12 +39,10 @@ int GetTemp() {
 
     return temp;
 }
-
 bool GetWifiSwitchStatus() {
     //return digitalRead(WIFI_SWITCH_PIN);
     return true;
 }
-
 void SetLEDColourRG(int r, int g) {
     analogWrite(LED_R_PIN, r);
     analogWrite(LED_G_PIN, g);
@@ -49,7 +50,52 @@ void SetLEDColourRG(int r, int g) {
     Serial.printf("LED Colour (RG): %d, %d\n", r, g);
 }
 
-void UpdateSwitchPorts(std::vector<bool> portStates) {
+Time GetTimeNow() {
+    time_t now = time(NULL);
+    tm *t = localtime(&now);
+
+    Time time;
+    time.sec = t->tm_sec;
+    time.min = t->tm_min;
+    time.hour = t->tm_hour;
+    time.dayDate = t->tm_mday;
+    time.month = t->tm_mon + 1;
+    time.year = t->tm_year + 1900;
+
+    return time;
+}
+void SetTime(const Time& time) {
+    tm timeInfo = {};
+    timeInfo.tm_sec  = time.sec;
+    timeInfo.tm_min  = time.min;
+    timeInfo.tm_hour = time.hour;
+    timeInfo.tm_mday = time.dayDate;
+    timeInfo.tm_mon  = time.month - 1;
+    timeInfo.tm_year = time.year - 1900;
+
+    time_t t = mktime(&timeInfo);
+    timeval now = { .tv_sec = t };
+    settimeofday(&now, NULL);
+}
+
+unsigned int GetTimeNowSeconds() {
+    time_t now = time(NULL);
+    return (unsigned int)now;
+}
+unsigned int ConvertTimeToSeconds(const Time& time) {
+    tm timeInfo = {};
+    timeInfo.tm_sec  = time.sec;
+    timeInfo.tm_min  = time.min;
+    timeInfo.tm_hour = time.hour;
+    timeInfo.tm_mday = time.dayDate;
+    timeInfo.tm_mon  = time.month - 1;
+    timeInfo.tm_year = time.year - 1900;
+
+    time_t now = mktime(&timeInfo);
+    return (unsigned int)now;
+}
+
+void UpdateSwitchPorts(std::vector<uint8_t> portStates) {
     if (currentPortStates == portStates) { // Check Changed
         return;
     }
@@ -72,60 +118,4 @@ void UpdateSwitchPorts(std::vector<bool> portStates) {
     digitalWrite(SWITCH_RCLK_PIN, LOW);
 
     currentPortStates = portStates;
-}
-
-struct TempRangeDuration  {
-    int lowTemp;
-    int highTemp;
-    int duration;
-};
-
-struct SwitchRoutine {
-    std::string name;
-    int timeInterval;
-
-    std::vector<TempRangeDuration> tempRangeDurations;
-    int timeDuration;
-
-    unsigned long oldTime;
-    bool done;
-
-    std::vector<bool> portStates;
-    std::vector<bool> returnPortStates;
-};
-
-std::vector<SwitchRoutine> switchRoutines = {};
-
-int GetCurrentTimeDuration(SwitchRoutine& switchRoutine) {
-    int temp = GetTemp();
-
-    for (int i = 0; i < switchRoutine.tempRangeDurations.size(); i++) {
-        if (temp >= switchRoutine.tempRangeDurations[i].lowTemp && temp <= switchRoutine.tempRangeDurations[i].highTemp) {
-            return switchRoutine.tempRangeDurations[i].duration;
-        }
-    }
-
-    return 0;
-}
-
-void UpdateSwitch() {
-    for (int i = 0; i < switchRoutines.size(); i++) {
-        switchRoutines[i].timeDuration = GetCurrentTimeDuration(switchRoutines[i]);
-
-        if (millis() - switchRoutines[i].oldTime >= switchRoutines[i].timeInterval) {
-            switchRoutines[i].oldTime = millis();
-            
-            if (switchRoutines[i].timeDuration != 0) {
-                UpdateSwitchPorts(switchRoutines[i].portStates);
-            }
-            
-            switchRoutines[i].done = false;
-        } if (millis() - switchRoutines[i].oldTime >= switchRoutines[i].timeDuration && !switchRoutines[i].done) {
-            if (switchRoutines[i].timeDuration != 0) {
-                UpdateSwitchPorts(switchRoutines[i].returnPortStates);
-            }
-
-            switchRoutines[i].done = true;
-        }
-    }
 }

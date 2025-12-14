@@ -6,8 +6,8 @@
 #include <DHT.h>
 #include <time.h>
 
-#define LED_R_PIN 16            // Out
-#define LED_G_PIN 17            // Out
+// #define _PIN 16
+#define LED_PIN 17            // Out
 #define WIFI_SWITCH_PIN 18      // In
 #define TEMP_SENSOR_PIN 19      // In
 
@@ -21,9 +21,8 @@ DHT dht(TEMP_SENSOR_PIN, DHT22);
 std::vector<uint8_t> currentPortStates;
 
 void SetupComponents() {
-    pinMode(LED_R_PIN, OUTPUT);
-    pinMode(LED_G_PIN, OUTPUT);
-    pinMode(WIFI_SWITCH_PIN, INPUT);
+    pinMode(LED_PIN, OUTPUT);
+    pinMode(WIFI_SWITCH_PIN, INPUT_PULLDOWN);
     dht.begin();
 
     pinMode(SWITCH_DATA_PIN, OUTPUT);

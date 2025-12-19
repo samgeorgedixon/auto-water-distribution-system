@@ -41,7 +41,8 @@ void HandleRoot() {
         
         <a href="time"><button >Set Time</button></a>
         <a href="wifi"><button >Set Wifi Credentials</button></a>
-        <a href="routines"><button >View Routines</button></a>
+        <a href="switch-ports"><button >Switch Ports</button></a>
+        <a href="routines"><button >Routines</button></a>
 
         <hr>
 
@@ -185,15 +186,24 @@ void HandleAddRoutine() {
             </select>
 
             <h3>Switch Ports</h3>
-            <div id="portsContainer"></div>
-            <button type="button" id="addPort">Add Port</button>
-            <button type="button" id="removePort">Remove Port</button>
+            <h4>Pumps</h4>
+            <button type="button" id="addPumpPort">Add Port</button>
+            <button type="button" id="removePumpPort">Remove Port</button>
+
+            <ul id="pumpPortsContainer"></ul>
+
+            <h4>Valves</h4>
+
+            <button type="button" id="addValvePort">Add Port</button>
+            <button type="button" id="removeValvePort">Remove Port</button>
+
+            <ul id="valvePortsContainer"></ul>
             <br>
 
             <h3>Durations (s) between Temperatures (°C)</h3>
             <div id="tempDurationsContainer">
                 <label style="margin-left: 120px;"><= , Duration: </label>
-                <input type="number" value=0 style="width: 50px;"></input>
+                <input type="number" value=0 style="width: 50px;">
                 <br>
             </div>
             <button type="button" id="addTempDuration">Add Temp Duration</button>
@@ -242,27 +252,52 @@ void HandleAddRoutine() {
                 container.appendChild(label);
             }
 
-            document.getElementById("addPort").addEventListener("click", () => {
-                const portsContainer = document.getElementById("portsContainer");
+            function CreatePortSelection(jsonList, container) {
+                const select = document.createElement("select");
 
-                const count = document.querySelectorAll("#portsContainer input[type=checkbox]").length / 2;
+                const placeholder = document.createElement("option");
+                placeholder.value = "";
+                placeholder.textContent = "-- Select Port --";
+                placeholder.selected = true;
+                placeholder.disabled = true;
+                select.appendChild(placeholder);
 
-                CreateLabel(portsContainer, `${count}. State: `);
-                CreateCheckbox(portsContainer, true);
+                jsonList.forEach(item => {
+                    const option = document.createElement("option");
+                    option.value = item.index;
+                    option.textContent = `${item.index}: ${item.current}A, ${item.voltage}V`;
+                    select.appendChild(option);
+                });
 
-                CreateLabel(portsContainer, ", Return State: ");
-                CreateCheckbox(portsContainer, false);
+                container.appendChild(select);
+            }
 
-                portsContainer.appendChild(document.createElement("br"));
+            const pumpPortsContainer = document.getElementById("pumpPortsContainer");
+            const valvePortsContainer = document.getElementById("valvePortsContainer");
+
+            let switchPorts = null;
+
+            document.getElementById("addPumpPort").addEventListener("click", () => {
+                const li = document.createElement("li");
+
+                CreatePortSelection(switchPorts.pumps, li);
+
+                pumpPortsContainer.appendChild(li);
             });
-            document.getElementById("removePort").addEventListener("click", () => {
-                const portsContainer = document.getElementById("portsContainer");
+            document.getElementById("removePumpPort").addEventListener("click", () => {
+                const last = pumpPortsContainer.lastElementChild;
+                if (last) last.remove();
+            });
+            document.getElementById("addValvePort").addEventListener("click", () => {
+                const li = document.createElement("li");
 
-                for (let i = 0; i < 5; i++) {
-                    const last = portsContainer.lastElementChild;
-                    if (last) last.remove();
-                    else break;
-                }
+                CreatePortSelection(switchPorts.valves, li);
+
+                valvePortsContainer.appendChild(li);
+            });
+            document.getElementById("removeValvePort").addEventListener("click", () => {
+                const last = valvePortsContainer.lastElementChild;
+                if (last) last.remove();
             });
 
             document.getElementById("addTempDuration").addEventListener("click", () => {
@@ -296,15 +331,11 @@ void HandleAddRoutine() {
                 const timeInterval = timeValue * (unitToSeconds[timeIntervalUnit] || 1);
 
                 // Ports
-                const portsContainer = document.getElementById("portsContainer");
-                const allCheckboxes = Array.from(portsContainer.querySelectorAll("input[type=checkbox]"));
-                const portStates = [];
-                const returnPortStates = [];
+                const pumpSelects = pumpPortsContainer.querySelectorAll("select");
+                const pumpPorts = Array.from(pumpSelects).map(s => s.value).filter(v => v !== "");
 
-                allCheckboxes.forEach((cb, index) => {
-                    if (index % 2 === 0) portStates.push(cb.checked);
-                    else returnPortStates.push(cb.checked);
-                });
+                const valveSelects = valvePortsContainer.querySelectorAll("select");
+                const valvePorts = Array.from(valveSelects).map(s => s.value).filter(v => v !== "");
 
                 // Temp Range Durations
                 const tempContainer = document.getElementById("tempDurationsContainer");
@@ -323,8 +354,8 @@ void HandleAddRoutine() {
                 const routineJson = {
                     name,
                     timeInterval,
-                    portStates,
-                    returnPortStates,
+                    pumpPorts,
+                    valvePorts,
                     tempRangeDurations,
                     newTimeSec: time.sec,
                     newTimeMin: time.min,
@@ -341,6 +372,15 @@ void HandleAddRoutine() {
                 });
 
                 window.location.href = "/routines";
+            });
+
+            async function LoadSwitchPorts() {
+                const response = await fetch("/api/switch-port/get-all");
+                switchPorts = await response.json();
+            }
+
+            document.addEventListener("DOMContentLoaded", async () => {
+                await LoadSwitchPorts();
             });
         </script>
     </body>
@@ -385,9 +425,18 @@ void HandleEditRoutine() {
             </select>
 
             <h3>Switch Ports</h3>
-            <div id="portsContainer"></div>
-            <button type="button" id="addPort">Add Port</button>
-            <button type="button" id="removePort">Remove Port</button>
+            <h4>Pumps</h4>
+            <button type="button" id="addPumpPort">Add Port</button>
+            <button type="button" id="removePumpPort">Remove Port</button>
+
+            <ul id="pumpPortsContainer"></ul>
+
+            <h4>Valves</h4>
+
+            <button type="button" id="addValvePort">Add Port</button>
+            <button type="button" id="removeValvePort">Remove Port</button>
+
+            <ul id="valvePortsContainer"></ul>
             <br>
 
             <h3>Durations (s) between Temperatures (°C)</h3>
@@ -458,27 +507,56 @@ void HandleEditRoutine() {
                 container.appendChild(label);
             }
 
-            document.getElementById("addPort").addEventListener("click", () => {
-                const portsContainer = document.getElementById("portsContainer");
+            function CreatePortSelection(jsonList, container, valueSelected) {
+                const select = document.createElement("select");
 
-                const count = document.querySelectorAll("#portsContainer input[type=checkbox]").length / 2;
+                const placeholder = document.createElement("option");
+                placeholder.value = "";
+                placeholder.textContent = "-- Select Port --";
+                placeholder.selected = !valueSelected;
+                placeholder.disabled = true;
+                select.appendChild(placeholder);
 
-                CreateLabel(portsContainer, `${count}. State: `);
-                CreateCheckbox(portsContainer, true);
+                jsonList.forEach(item => {
+                    const option = document.createElement("option");
+                    option.value = item.index;
+                    option.textContent = `${item.index}: ${item.current}A, ${item.voltage}V`;
+                    select.appendChild(option);
+                });
 
-                CreateLabel(portsContainer, ", Return State: ");
-                CreateCheckbox(portsContainer, false);
-
-                portsContainer.appendChild(document.createElement("br"));
-            });
-            document.getElementById("removePort").addEventListener("click", () => {
-                const portsContainer = document.getElementById("portsContainer");
-
-                for (let i = 0; i < 5; i++) {
-                    const last = portsContainer.lastElementChild;
-                    if (last) last.remove();
-                    else break;
+                if (valueSelected != null) { 
+                    select.value = valueSelected.toString();
                 }
+
+                container.appendChild(select);
+            }
+
+            const pumpPortsContainer = document.getElementById("pumpPortsContainer");
+            const valvePortsContainer = document.getElementById("valvePortsContainer");
+
+            let switchPorts = null;
+
+            document.getElementById("addPumpPort").addEventListener("click", () => {
+                const li = document.createElement("li");
+
+                CreatePortSelection(switchPorts.pumps, li, "");
+
+                pumpPortsContainer.appendChild(li);
+            });
+            document.getElementById("removePumpPort").addEventListener("click", () => {
+                const last = pumpPortsContainer.lastElementChild;
+                if (last) last.remove();
+            });
+            document.getElementById("addValvePort").addEventListener("click", () => {
+                const li = document.createElement("li");
+
+                CreatePortSelection(switchPorts.valves, li, "");
+
+                valvePortsContainer.appendChild(li);
+            });
+            document.getElementById("removeValvePort").addEventListener("click", () => {
+                const last = valvePortsContainer.lastElementChild;
+                if (last) last.remove();
             });
 
             document.getElementById("addTempDuration").addEventListener("click", () => {
@@ -516,17 +594,22 @@ void HandleEditRoutine() {
                 document.getElementById("timeIntervalUnit").value = "seconds";
 
                 // Ports
-                const portsContainer = document.getElementById("portsContainer");
-                portsContainer.innerHTML = "";
+                pumpPortsContainer.innerHTML = "";
+                valvePortsContainer.innerHTML = "";
 
-                for (let i = 0; i < routine.portStates.length; i++) {
-                    CreateLabel(portsContainer, `${i}. State: `);
-                    CreateCheckbox(portsContainer, routine.portStates[i]);
+                for (let i = 0; i < routine.pumpPorts.length; i++) {
+                    const li = document.createElement("li");
 
-                    CreateLabel(portsContainer, ", Return State: ");
-                    CreateCheckbox(portsContainer, routine.returnPortStates[i]);
+                    CreatePortSelection(switchPorts.pumps, li, routine.pumpPorts[i] + 1);
 
-                    portsContainer.appendChild(document.createElement("br"));
+                    pumpPortsContainer.appendChild(li);
+                }
+                for (let i = 0; i < routine.valvePorts.length; i++) {
+                    const li = document.createElement("li");
+
+                    CreatePortSelection(switchPorts.valves, li, routine.valvePorts[i] + 1);
+
+                    valvePortsContainer.appendChild(li);
                 }
 
                 // Temp Durations
@@ -558,15 +641,11 @@ void HandleEditRoutine() {
                 const timeInterval = timeValue * (unitToSeconds[timeIntervalUnit] || 1);
 
                 // Ports
-                const portsContainer = document.getElementById("portsContainer");
-                const allCheckboxes = Array.from(portsContainer.querySelectorAll("input[type=checkbox]"));
-                const portStates = [];
-                const returnPortStates = [];
+                const pumpSelects = pumpPortsContainer.querySelectorAll("select");
+                const pumpPorts = Array.from(pumpSelects).map(s => s.value).filter(v => v !== "");
 
-                allCheckboxes.forEach((cb, index) => {
-                    if (index % 2 === 0) portStates.push(cb.checked);
-                    else returnPortStates.push(cb.checked);
-                });
+                const valveSelects = valvePortsContainer.querySelectorAll("select");
+                const valvePorts = Array.from(valveSelects).map(s => s.value).filter(v => v !== "");
 
                 // Temp Range Durations
                 const tempContainer = document.getElementById("tempDurationsContainer");
@@ -586,8 +665,8 @@ void HandleEditRoutine() {
                     name,
                     timeInterval,
                     newTimeSet: setNewTime.checked,
-                    portStates,
-                    returnPortStates,
+                    pumpPorts,
+                    valvePorts,
                     tempRangeDurations,
                     newTimeSec: time.sec,
                     newTimeMin: time.min,
@@ -609,8 +688,215 @@ void HandleEditRoutine() {
                 window.location.href = "/routines";
             });
 
+            async function LoadSwitchPorts() {
+                const response = await fetch("/api/switch-port/get-all");
+                switchPorts = await response.json();
+            }
+
             document.addEventListener("DOMContentLoaded", async () => {
+                await LoadSwitchPorts();
                 await RestoreOriginals();
+            });
+        </script>
+    </body>
+    </html>
+    )";
+    server.send(200, "text/html", response);
+}
+void HandleSwitchPorts() {
+    String response = R"(
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Switch Ports - Regulated Irrigation System</title>
+
+        <style>
+            html {
+                font-family: Segoe UI;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Switch Ports - Regulated Irrigation System</h1>
+
+        <a href="/"><button>RIS</button></a>
+
+        <hr>
+
+        <h3>Pump Ports: </h3>
+        <button type="button" id="addPumpPort">Add</button>
+        <button type="button" id="removePumpPort">Remove</button>
+        
+        <ul id="pumpList"></ul>
+
+        <h3>Valve Ports: </h3>
+        <button type="button" id="addValvePort">Add</button>
+        <button type="button" id="removeValvePort">Remove</button>
+        
+        <ul id="valveList"></ul>
+
+        <button type="button" id="save-all">Save All</button>
+
+        <script>
+            const pumpList = document.getElementById("pumpList");
+            const valveList = document.getElementById("valveList");
+
+            function GetPortList(portList) {
+                const ports = [];
+
+                for (const li of portList.children) {
+                    const inputs = li.querySelectorAll("input");
+
+                    ports.push({
+                        index: Number(inputs[0].value),
+                        current: Number(inputs[1].value),
+                        voltage: Number(inputs[2].value),
+                        externalPower: inputs[3].checked
+                    });
+                }
+                return ports;
+            }
+
+            document.getElementById("save-all").addEventListener("click", async () => {
+                const switchPortsJson = {
+                    pumps: GetPortList(pumpList),
+                    valves: GetPortList(valveList),
+                };
+
+                const response = await fetch("/api/switch-port/save-all", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(switchPortsJson)
+                });
+
+                window.location.href = "/";
+            });
+
+            function CreateCheckbox(container, isChecked) {
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.checked = isChecked;
+                container.appendChild(checkbox);
+            }
+            function CreateTextInput(container, value, width) {
+                const input = document.createElement("input");
+                input.value = value;
+
+                input.style.width = width;
+                container.appendChild(input);
+            }
+            function CreateNumberInput(container, value, width, min, max, step) {
+                const input = document.createElement("input");
+                input.value = value;
+
+                input.type = "number";
+                input.min = min;
+                input.max = max;
+                input.step = step;
+
+                input.style.width = width;
+                container.appendChild(input);
+            }
+            function CreateText(container, value) {
+                const text = document.createElement("span");
+                text.textContent = value;
+                container.appendChild(text);
+            }
+
+            document.getElementById("addPumpPort").addEventListener("click", () => {
+                const li = document.createElement("li");
+
+                CreateText(li, "Index: ");
+                CreateNumberInput(li, "", "30px", 1, "", 1);
+
+                CreateText(li, ", Current (A): ");
+                CreateNumberInput(li, 0.4, "30px", 0, 10, "");
+                
+                CreateText(li, ", Voltage (V): ");
+                CreateNumberInput(li, 12, "30px", 0, "", "");
+
+                CreateText(li, ", External Power: ");
+                CreateCheckbox(li, false);
+
+                pumpList.appendChild(li);
+            });
+            document.getElementById("addValvePort").addEventListener("click", () => {
+                const li = document.createElement("li");
+
+                CreateText(li, "Index: ");
+                CreateNumberInput(li, "", "30px", 1, "", 1);
+
+                CreateText(li, ", Current (A): ");
+                CreateNumberInput(li, 0.4, "30px", 0, 10, "");
+
+                CreateText(li, ", Voltage (V): ");
+                CreateNumberInput(li, 12, "30px", 0, "", "");
+
+                CreateText(li, ", External Power: ");
+                CreateCheckbox(li, false);
+
+                valveList.appendChild(li);
+            });
+            document.getElementById("removePumpPort").addEventListener("click", () => {
+                const last = pumpList.lastElementChild;
+                if (last) last.remove();
+            });
+            document.getElementById("removeValvePort").addEventListener("click", () => {
+                const last = valveList.lastElementChild;
+                if (last) last.remove();
+            });
+
+            function DisplayPorts(ports) {
+                pumpList.innerHTML = "";
+                valveList.innerHTML = "";
+ 
+                ports.pumps.forEach((pump, index) => {
+                    const li = document.createElement("li");
+
+                    CreateText(li, "Index: ");
+                    CreateNumberInput(li, pump.index, "30px", 1, "", 1);
+
+                    CreateText(li, ", Current (A): ");
+                    CreateNumberInput(li, pump.current, "30px", 0, 10, "");
+
+                    CreateText(li, ", Voltage (V): ");
+                    CreateNumberInput(li, pump.voltage, "30px", 0, "", "");
+
+                    CreateText(li, ", External Power: ");
+                    CreateCheckbox(li, pump.externalPower);
+
+                    pumpList.appendChild(li);
+                });
+                ports.valves.forEach((valve, index) => {
+                    const li = document.createElement("li");
+
+                    CreateText(li, "Index: ");
+                    CreateNumberInput(li, valve.index, "30px", 1, "", 1);
+
+                    CreateText(li, ", Current (A): ");
+                    CreateNumberInput(li, valve.current, "30px", 0, 10, "");
+
+                    CreateText(li, ", Voltage (V): ");
+                    CreateNumberInput(li, valve.voltage, "30px", 0, "", "");
+
+                    CreateText(li, ", External Power: ");
+                    CreateCheckbox(li, valve.externalPower);
+
+                    valveList.appendChild(li);
+                });
+            }
+            
+            async function LoadPorts() {
+                const response = await fetch("/api/switch-port/get-all");
+                const ports = await response.json();
+
+                DisplayPorts(ports);
+            }
+            
+            document.addEventListener("DOMContentLoaded", async () => {
+                await LoadPorts();
             });
         </script>
     </body>
@@ -851,18 +1137,18 @@ void HandleAddRoutineAPI() {
     routine.done = true;
     routine.timeDuration = 0;
 
-    routine.portStates = {};
-    routine.returnPortStates = {};
+    routine.pumpPorts = {};
+    routine.valvePorts = {};
     routine.tempRangeDurations = {};
     
     routine.name = doc["name"].as<String>().c_str();
     routine.timeInterval = doc["timeInterval"].as<int>();
 
-    JsonArray ports = doc["portStates"].as<JsonArray>();
-    for (bool b : ports) routine.portStates.push_back(b);
+    JsonArray pumpPorts = doc["pumpPorts"].as<JsonArray>();
+    for (uint32_t b : pumpPorts) routine.pumpPorts.push_back(b - 1);
 
-    JsonArray returns = doc["returnPortStates"].as<JsonArray>();
-    for (bool b : returns) routine.returnPortStates.push_back(b);
+    JsonArray valvePorts = doc["valvePorts"].as<JsonArray>();
+    for (uint32_t b : valvePorts) routine.valvePorts.push_back(b - 1);
     
     JsonArray temps = doc["tempRangeDurations"].as<JsonArray>();
     for (int t : temps) routine.tempRangeDurations.push_back(t);
@@ -894,18 +1180,18 @@ void HandleEditRoutineAPI() {
     routine.done = true;
     routine.timeDuration = 0;
 
-    routine.portStates = {};
-    routine.returnPortStates = {};
+    routine.pumpPorts = {};
+    routine.valvePorts = {};
     routine.tempRangeDurations = {};
     
     routine.name = doc["name"].as<String>().c_str();
     routine.timeInterval = doc["timeInterval"].as<int>();
 
-    JsonArray ports = doc["portStates"].as<JsonArray>();
-    for (bool b : ports) routine.portStates.push_back(b);
+    JsonArray pumpPorts = doc["pumpPorts"].as<JsonArray>();
+    for (uint32_t b : pumpPorts) routine.pumpPorts.push_back(b - 1);
 
-    JsonArray returns = doc["returnPortStates"].as<JsonArray>();
-    for (bool b : returns) routine.returnPortStates.push_back(b);
+    JsonArray valvePorts = doc["valvePorts"].as<JsonArray>();
+    for (uint32_t b : valvePorts) routine.valvePorts.push_back(b - 1);
     
     JsonArray temps = doc["tempRangeDurations"].as<JsonArray>();
     for (int t : temps) routine.tempRangeDurations.push_back(t);
@@ -943,13 +1229,13 @@ void RoutineToJson(const SwitchRoutine &routine, DynamicJsonDocument& doc) {
     doc["name"] = routine.name.c_str();
     doc["timeInterval"] = routine.timeInterval;
 
-    JsonArray portStatesJson = doc.createNestedArray("portStates");
-    for (int i = 0; i < routine.portStates.size(); i++) {
-        portStatesJson.add(routine.portStates[i]);
+    JsonArray pumpPortsJson = doc.createNestedArray("pumpPorts");
+    for (int i = 0; i < routine.pumpPorts.size(); i++) {
+        pumpPortsJson.add(routine.pumpPorts[i]);
     }
-    JsonArray returnPortStatesJson = doc.createNestedArray("returnPortStates");
-    for (int i = 0; i < routine.returnPortStates.size(); i++) {
-        returnPortStatesJson.add(routine.returnPortStates[i]);
+    JsonArray valvePortsJson = doc.createNestedArray("valvePorts");
+    for (int i = 0; i < routine.valvePorts.size(); i++) {
+        valvePortsJson.add(routine.valvePorts[i]);
     }
 
     JsonArray tempRangeDurationsJson = doc.createNestedArray("tempRangeDurations");
@@ -1009,11 +1295,101 @@ void HandleGetAllRoutineAPI() {
     Serial.println("Got Routines");
 }
 
+void SwitchPortToJson(const SwitchPort &switchPort, DynamicJsonDocument& doc) {
+    doc["index"] = switchPort.index;
+    doc["current"] = switchPort.current;
+    doc["voltage"] = switchPort.voltage;
+    doc["externalPower"] = (switchPort.externalPower ? true: false);
+}
+
+void HandleGetAllSwitchPortAPI() {
+    const SwitchPorts& ports = GetSwitchPorts();
+
+    WiFiClient client = server.client();
+
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/json");
+    client.println("Connection: close");
+    client.println();
+    
+    client.print("{");
+    client.print("\"pumps\": [");
+
+    for (int i = 0; i < ports.pumps.size(); i++) {
+        if (i > 0) client.print(",");
+
+        DynamicJsonDocument doc(128);
+        SwitchPortToJson(ports.pumps[i], doc);
+
+        serializeJson(doc, client);
+    }
+
+    client.print("],");
+    client.print("\"valves\": [");
+
+    for (int i = 0; i < ports.valves.size(); i++) {
+        if (i > 0) client.print(",");
+
+        DynamicJsonDocument doc(128);
+        SwitchPortToJson(ports.valves[i], doc);
+
+        serializeJson(doc, client);
+    }
+
+    client.print("]");
+    client.print("}");
+    client.stop();
+
+    Serial.println("Got Switch Ports");
+}
+void HandleSaveAllSwitchPortAPI() {
+    if (!server.hasArg("plain")) {
+        server.send(400, "text/plain", "Invalid Save Switch Ports Request");
+        return;
+    }
+
+    String body = server.arg("plain");
+    DynamicJsonDocument doc(1500);
+    deserializeJson(doc, body);
+
+    SwitchPorts newPorts;
+    newPorts.pumps.clear();
+    newPorts.valves.clear();
+
+    JsonArray pumps = doc["pumps"].as<JsonArray>();
+    for (JsonObject p : pumps) {
+        SwitchPort port;
+        port.index = p["index"].as<int>();
+        port.current = p["current"].as<float>();
+        port.voltage = p["voltage"].as<float>();
+        port.externalPower = p["externalPower"].as<bool>();
+
+        newPorts.pumps.push_back(port);
+    }
+
+    JsonArray valves = doc["valves"].as<JsonArray>();
+    for (JsonObject v : valves) {
+        SwitchPort port;
+        port.index = v["index"].as<int>();
+        port.current = v["current"].as<float>();
+        port.voltage = v["voltage"].as<float>();
+        port.externalPower = v["externalPower"].as<bool>();
+
+        newPorts.valves.push_back(port);
+    }
+
+    SetSwitchPorts(newPorts);
+
+    Serial.println("Saved Switch Ports");
+    server.send(200, "text/plain", "Saved Switch Ports");
+}
+
 void SetupServerHandles() {
     server.on("/", HandleRoot);
     server.on("/routines", HandleRoutines);
     server.on("/add-routine", HandleAddRoutine);
     server.on("/edit-routine", HandleEditRoutine);
+    server.on("/switch-ports", HandleSwitchPorts);
     server.on("/time", HandleTime);
     server.on("/wifi", HandleWifi);
     
@@ -1028,6 +1404,9 @@ void SetupServerHandles() {
 
     server.on("/api/routine/get-all", HandleGetAllRoutineAPI);
     server.on("/api/routine/get", HandleGetRoutineAPI);
+
+    server.on("/api/switch-port/get-all", HandleGetAllSwitchPortAPI);
+    server.on("/api/switch-port/save-all", HandleSaveAllSwitchPortAPI);
     
     server.onNotFound(Handle404);
 }

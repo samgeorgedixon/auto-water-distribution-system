@@ -19,10 +19,13 @@ void SetLEDColourRG(int r, int g);
 
 void SetTime(const Time &time);
 
-void UpdateSwitchPorts(std::vector<uint8_t> portStates);
+void EnableSwitchPorts(std::vector<uint32_t> ports);
+void DisableSwitchPorts(std::vector<uint32_t> ports);
+void UpdateSwitchPorts();
 
 Time GetTimeNow();
 void SetTime(const Time& time);
 
 unsigned int GetTimeNowSeconds();
 unsigned int ConvertTimeToSeconds(const Time &time);
+

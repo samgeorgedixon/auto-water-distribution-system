@@ -7,17 +7,18 @@
 #include <time.h>
 
 // #define _PIN 16
-#define LED_PIN 17            // Out
-#define WIFI_SWITCH_PIN 18      // In
-#define TEMP_SENSOR_PIN 19      // In
+#define LED_PIN 21              // Out
+#define WIFI_SWITCH_PIN 22      // In
+#define TEMP_SENSOR_PIN 23      // In/Out
 
 // Outputs to 74HC595 Chip
-#define SWITCH_DATA_PIN 21
-#define SWITCH_SRCLK_PIN 22     // WriteInternalClock
-#define SWITCH_RCLK_PIN 23      // OutputClock
+#define SWITCH_DATA_PIN 19      // Out
+#define SWITCH_SRCLK_PIN 22     // Out: Write Internal Clock
+#define SWITCH_RCLK_PIN 17      // Out: Output Clock
 
 DHT dht(TEMP_SENSOR_PIN, DHT22);
 
+std::vector<uint8_t> portStates;
 std::vector<uint8_t> currentPortStates;
 
 void SetupComponents() {
@@ -42,11 +43,10 @@ bool GetWifiSwitchStatus() {
     //return digitalRead(WIFI_SWITCH_PIN);
     return true;
 }
-void SetLEDColourRG(int r, int g) {
-    analogWrite(LED_R_PIN, r);
-    analogWrite(LED_G_PIN, g);
+void SetLEDColourRG(bool on) {
+    digitalWrite(LED_PIN, on);
 
-    Serial.printf("LED Colour (RG): %d, %d\n", r, g);
+    Serial.printf("LED State: %d\n", on);
 }
 
 Time GetTimeNow() {
@@ -94,7 +94,24 @@ unsigned int ConvertTimeToSeconds(const Time& time) {
     return (unsigned int)now;
 }
 
-void UpdateSwitchPorts(std::vector<uint8_t> portStates) {
+void EnableSwitchPorts(std::vector<uint32_t> ports) {
+    for (int i = 0; i < ports.size(); i++) {
+        while (portStates.size() <= ports[i]) {
+            portStates.push_back(false);
+        }
+        portStates[ports[i]] = true;
+    }
+}
+void DisableSwitchPorts(std::vector<uint32_t> ports) {
+    for (int i = 0; i < ports.size(); i++) {
+        while (portStates.size() <= ports[i]) {
+            portStates.push_back(false);
+        }
+        portStates[ports[i]] = false;
+    }
+}
+
+void UpdateSwitchPorts() {
     if (currentPortStates == portStates) { // Check Changed
         return;
     }

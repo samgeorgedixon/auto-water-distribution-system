@@ -7,6 +7,8 @@
 
 void SetupProgram() {
     SetupComponents();
+    
+    ResetToPerminantSwitchPorts();
     ResetToAllPerminantRoutines();
 }
 

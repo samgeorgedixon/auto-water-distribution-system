@@ -7,6 +7,8 @@ Preferences routinePreferences; // Max Key Length: 15
 
 std::vector<SwitchRoutine> switchRoutines = {};
 
+SwitchPorts switchPorts = { {}, {} };
+
 void SetPerminantRoutine(int index, SwitchRoutine& routine) {
     std::string routineName = "routine-" + std::to_string(index);
 
@@ -16,12 +18,12 @@ void SetPerminantRoutine(int index, SwitchRoutine& routine) {
     routinePreferences.putString("name", routine.name.c_str());
     routinePreferences.putInt("timeInterval", routine.timeInterval);
 
-    routinePreferences.putInt("psCount", routine.portStates.size());
-    routinePreferences.putInt("rpsCount", routine.returnPortStates.size());
+    routinePreferences.putInt("ppCount", routine.pumpPorts.size());
+    routinePreferences.putInt("vpCount", routine.valvePorts.size());
     routinePreferences.putInt("trdCount", routine.tempRangeDurations.size());
     
-    routinePreferences.putBytes("portStates", &routine.portStates[0], routine.portStates.size() * sizeof(bool)); // Bool: 1 Char
-    routinePreferences.putBytes("retPortStates", &routine.returnPortStates[0], routine.returnPortStates.size() * sizeof(bool)); // Bool: 1 Char
+    routinePreferences.putBytes("pumpPorts", &routine.pumpPorts[0], routine.pumpPorts.size() * sizeof(uint32_t));
+    routinePreferences.putBytes("valvePorts", &routine.valvePorts[0], routine.valvePorts.size() * sizeof(uint32_t));
 
     routinePreferences.putBytes("tempRangeDur", &routine.tempRangeDurations[0], routine.tempRangeDurations.size() * sizeof(int)); // Int32: 4 Char
     
@@ -45,16 +47,16 @@ SwitchRoutine GetPerminantRoutine(int index) {
     routine.name = routinePreferences.getString("name", "");
     routine.timeInterval = routinePreferences.getInt("timeInterval", 0);
     
-    int portStatesCount = routinePreferences.getInt("psCount", 0);
-    int returnPortStatesCount = routinePreferences.getInt("rpsCount", 0);
+    int pumpPortsCount = routinePreferences.getInt("ppCount", 0);
+    int valvePortsCount = routinePreferences.getInt("vpCount", 0);
     int tempRangeDurationsCount = routinePreferences.getInt("trdCount", 0);
 
-    routine.portStates.resize(portStatesCount);
-    routine.returnPortStates.resize(returnPortStatesCount);
+    routine.pumpPorts.resize(pumpPortsCount);
+    routine.valvePorts.resize(valvePortsCount);
     routine.tempRangeDurations.resize(tempRangeDurationsCount);
 
-    routinePreferences.getBytes("portStates", &routine.portStates[0], portStatesCount * sizeof(bool)); // Bool: 1 Char
-    routinePreferences.getBytes("retPortStates", &routine.returnPortStates[0], returnPortStatesCount * sizeof(bool)); // Bool: 1 Char
+    routinePreferences.getBytes("pumpPorts", &routine.pumpPorts[0], pumpPortsCount * sizeof(uint32_t));
+    routinePreferences.getBytes("valvePorts", &routine.valvePorts[0], valvePortsCount * sizeof(uint32_t));
 
     routinePreferences.getBytes("tempRangeDur", &routine.tempRangeDurations[0], tempRangeDurationsCount * sizeof(int)); // Int32: 4 Char
     
@@ -139,6 +141,42 @@ void RemoveRoutine(int index) {
     Serial.printf("Removed Routine: %d\n", index);
 }
 
+void ResetToPerminantSwitchPorts() {
+    routinePreferences.begin("switchPorts", false);
+
+    int pumpsCount = routinePreferences.getInt("pumpsCount", 0);
+    int valvesCount = routinePreferences.getInt("valvesCount", 0);
+
+    
+    switchPorts.pumps.resize(pumpsCount);
+    switchPorts.valves.resize(valvesCount);
+    
+    routinePreferences.getBytes("pumps", &switchPorts.pumps[0], pumpsCount * sizeof(SwitchPort));
+    routinePreferences.getBytes("valves", &switchPorts.valves[0], valvesCount * sizeof(SwitchPort));
+    
+    Serial.printf("pumpsCount: %d\n", switchPorts.pumps[0].index);
+    Serial.printf("valvesCount: %d\n", switchPorts.valves.size());
+
+    routinePreferences.end();
+}
+
+const SwitchPorts& GetSwitchPorts() {
+    return switchPorts;
+}
+void SetSwitchPorts(SwitchPorts ports) {
+    switchPorts = ports;
+
+    routinePreferences.begin("switchPorts", false);
+
+    routinePreferences.putInt("pumpsCount", switchPorts.pumps.size());
+    routinePreferences.putInt("valvesCount", switchPorts.valves.size());
+
+    routinePreferences.putBytes("pumps", &switchPorts.pumps[0], switchPorts.pumps.size() * sizeof(SwitchPort));
+    routinePreferences.putBytes("valves", &switchPorts.valves[0], switchPorts.valves.size() * sizeof(SwitchPort));
+    
+    routinePreferences.end();
+}
+
 int GetCurrentTimeDuration(const SwitchRoutine& switchRoutine) {
     int temp = GetTemp();
 
@@ -159,14 +197,18 @@ void UpdateSwitch() {
             switchRoutines[i].timeDuration = GetCurrentTimeDuration(switchRoutines[i]);
             
             if (switchRoutines[i].timeDuration != 0) {
-                UpdateSwitchPorts(switchRoutines[i].portStates);
+                EnableSwitchPorts(switchRoutines[i].pumpPorts);
+                EnableSwitchPorts(switchRoutines[i].valvePorts);
+                UpdateSwitchPorts();
             }
             
             switchRoutines[i].done = false;
         }
         if (GetTimeNowSeconds() - switchRoutines[i].newTime >= switchRoutines[i].timeDuration && !switchRoutines[i].done) {
             if (switchRoutines[i].timeDuration != 0) {
-                UpdateSwitchPorts(switchRoutines[i].returnPortStates);
+                DisableSwitchPorts(switchRoutines[i].pumpPorts);
+                DisableSwitchPorts(switchRoutines[i].valvePorts);
+                UpdateSwitchPorts();
             }
 
             switchRoutines[i].done = true;

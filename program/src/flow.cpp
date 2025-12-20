@@ -21,13 +21,17 @@ void UpdateProgram() {
         SetupNetwork();
         WifiOn = true;
 
+        SetLED(true);
         Serial.println("Wifi On");
+        
         delay(20);
     } else if (!GetWifiSwitchStatus() && WifiOn) {
         StopNetwork();
         WifiOn = false;
 
+        SetLED(false);
         Serial.println("Wifi Off");
+
         delay(20);
     }
 

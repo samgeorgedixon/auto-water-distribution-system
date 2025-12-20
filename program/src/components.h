@@ -15,13 +15,13 @@ void SetupComponents();
 
 int GetTemp();
 bool GetWifiSwitchStatus();
-void SetLEDColourRG(int r, int g);
+void SetLED(bool state);
 
 void SetTime(const Time &time);
 
 void EnableSwitchPorts(std::vector<uint32_t> ports);
 void DisableSwitchPorts(std::vector<uint32_t> ports);
-void UpdateSwitchPorts();
+void UpdateSwitchPorts(int bitWidth);
 
 Time GetTimeNow();
 void SetTime(const Time& time);

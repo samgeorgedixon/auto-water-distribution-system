@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time - Regulated Irrigation System</title>
+
+    <style>
+        html {
+            font-family: Segoe UI;
+        }
+    </style>
+</head>
+<body>
+    <h1>Time - Regulated Irrigation System</h1>
+
+    <a href="/"><button>RIS</button></a>
+
+    <hr>
+
+    <form id="timeForm">
+        <h3>Set Time:</h3>
+        <div id="timeContainer">
+            <label>Second: <input type="number" id="timeSec" min="0" max="59" value="0"></label><br>
+            <label>Minute: <input type="number" id="timeMin" min="0" max="59" value="0"></label><br>
+            <label>Hour:   <input type="number" id="timeHour" min="0" max="23" value="0"></label><br>
+            <label>Date:   <input type="number" id="timeDayDate" min="1" max="31" value="1"></label><br>
+            <label>Month:  <input type="number" id="timeMonth" min="1" max="12" value="1"></label><br>
+            <label>Year:   <input type="number" id="timeYear" min="1970" max="2100" value="2026"></label><br>
+        </div>
+
+        <button type="submit">Set Time</button>
+    </form>
+
+    <script>
+        document.getElementById("timeForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const timeJson = {
+                sec: parseInt(document.getElementById("timeSec").value) || 0,
+                min: parseInt(document.getElementById("timeMin").value) || 0,
+                hour: parseInt(document.getElementById("timeHour").value) || 0,
+                dayDate: parseInt(document.getElementById("timeDayDate").value) || 1,
+                month: parseInt(document.getElementById("timeMonth").value) || 0,
+                year: parseInt(document.getElementById("timeYear").value) || 2026
+            };
+
+            const response = await fetch(`/api/set-time`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(timeJson)
+            });
+
+            window.location.href = "/";
+        });
+    </script>
+</body>
+</html>

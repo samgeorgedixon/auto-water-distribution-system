@@ -1,0 +1,56 @@
+#pragma once
+#include <Arduino.h>
+
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Water Distribution System</title>
+
+    <style>
+        html {
+            font-family: Segoe UI;
+        }
+    </style>
+</head>
+<body>
+    <h1>Regulated Irrigation System</h1>    
+    
+    <a href="time"><button >Set Time</button></a>
+    <a href="wifi"><button >Set Wifi Credentials</button></a>
+    <a href="switch-ports"><button >Switch Ports</button></a>
+    <a href="routines"><button >Routines</button></a>
+
+    <hr>
+
+    <p id="time">Time: ...</p>
+    <p id="date">Date: ...</p>
+
+    <p id="temp">Temperature: ...</p>
+
+    <script>
+        async function GetTemperature() {
+            const response = await fetch(`/api/get-temp`);
+            const temp = await response.json();
+
+            document.getElementById('temp').textContent = `Temperature: ${temp}°C`;
+        }
+        async function GetTime() {
+            const response = await fetch(`/api/get-time`);
+            const time = await response.json();
+
+            document.getElementById('time').textContent = `Time: ${time.hour}:${time.min}:${time.sec}`;
+            document.getElementById('date').textContent = `Date: ${time.dayDate}/${time.month}/${time.year}`;
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await GetTemperature();
+            await GetTime();
+        });
+    </script>
+</body>
+</html>
+
+)rawliteral";

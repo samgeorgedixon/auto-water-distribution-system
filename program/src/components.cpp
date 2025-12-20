@@ -43,10 +43,10 @@ bool GetWifiSwitchStatus() {
     //return digitalRead(WIFI_SWITCH_PIN);
     return true;
 }
-void SetLEDColourRG(bool on) {
-    digitalWrite(LED_PIN, on);
+void SetLED(bool state) {
+    digitalWrite(LED_PIN, state);
 
-    Serial.printf("LED State: %d\n", on);
+    Serial.printf("LED State: %d\n", state);
 }
 
 Time GetTimeNow() {
@@ -111,26 +111,48 @@ void DisableSwitchPorts(std::vector<uint32_t> ports) {
     }
 }
 
-void UpdateSwitchPorts() {
-    if (currentPortStates == portStates) { // Check Changed
+void UpdateSwitchPorts(int bitWidth) {
+    if (currentPortStates == portStates || portStates.size() == 0 || bitWidth <= 0 || bitWidth > 8) { // Check Changed
         return;
     }
 
     // Write Internally to 74HC595 Shift Register
-    for (int i = portStates.size(); i >= 0; i--) {
-        digitalWrite(SWITCH_DATA_PIN, portStates[i]);
-        delay(2);
-        digitalWrite(SWITCH_SRCLK_PIN, HIGH);
-        delay(2);
-        digitalWrite(SWITCH_SRCLK_PIN, LOW);
-        delay(2);
+    int remainingPorts = portStates.size();
+    int portIndex = portStates.size() - 1;
+
+    while (remainingPorts > 0) {
+        int registerDataBits = (remainingPorts >= bitWidth) ? bitWidth : remainingPorts;
+
+        // Shift Data Bits
+        for (int i = 0; i < registerDataBits; i++) {
+            digitalWrite(SWITCH_DATA_PIN, portStates[portIndex--]);
+            delay(1);
+            digitalWrite(SWITCH_SRCLK_PIN, HIGH);
+            delay(1);
+            digitalWrite(SWITCH_SRCLK_PIN, LOW);
+            delay(1);
+        }
+
+        remainingPorts -= registerDataBits;
+
+        // Padding
+        if (registerDataBits == bitWidth) {
+            for (int i = 0; i < (8 - bitWidth); i++) {
+                digitalWrite(SWITCH_DATA_PIN, LOW);
+                delay(1);
+                digitalWrite(SWITCH_SRCLK_PIN, HIGH);
+                delay(1);
+                digitalWrite(SWITCH_SRCLK_PIN, LOW);
+                delay(1);
+            }
+        }
     }
     digitalWrite(SWITCH_DATA_PIN, LOW);
-    delay(2);
+    delay(1);
     
     // Output 74HC595 Shift Register Internals
     digitalWrite(SWITCH_RCLK_PIN, HIGH);
-    delay(2);
+    delay(1);
     digitalWrite(SWITCH_RCLK_PIN, LOW);
 
     currentPortStates = portStates;

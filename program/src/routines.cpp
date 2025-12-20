@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <Preferences.h>
 
+#define SWITCH_BIT_WIDTH 6
+
 Preferences routinePreferences; // Max Key Length: 15
 
 std::vector<SwitchRoutine> switchRoutines = {};
@@ -191,15 +193,13 @@ int GetCurrentTimeDuration(const SwitchRoutine& switchRoutine) {
 
 void UpdateSwitch() {
     for (int i = 0; i < switchRoutines.size(); i++) {
-        if (GetTimeNowSeconds() >= switchRoutines[i].newTime) {
-            switchRoutines[i].newTime += switchRoutines[i].timeInterval;
-
+        if (GetTimeNowSeconds() >= switchRoutines[i].newTime && switchRoutines[i].done) {
             switchRoutines[i].timeDuration = GetCurrentTimeDuration(switchRoutines[i]);
             
             if (switchRoutines[i].timeDuration != 0) {
                 EnableSwitchPorts(switchRoutines[i].pumpPorts);
                 EnableSwitchPorts(switchRoutines[i].valvePorts);
-                UpdateSwitchPorts();
+                UpdateSwitchPorts(SWITCH_BIT_WIDTH);
             }
             
             switchRoutines[i].done = false;
@@ -208,9 +208,11 @@ void UpdateSwitch() {
             if (switchRoutines[i].timeDuration != 0) {
                 DisableSwitchPorts(switchRoutines[i].pumpPorts);
                 DisableSwitchPorts(switchRoutines[i].valvePorts);
-                UpdateSwitchPorts();
+                UpdateSwitchPorts(SWITCH_BIT_WIDTH);
             }
-
+            
+            switchRoutines[i].newTime += switchRoutines[i].timeInterval;
+            
             switchRoutines[i].done = true;
         }
     }

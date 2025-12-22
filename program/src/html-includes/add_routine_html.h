@@ -37,6 +37,9 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
         </select>
 
         <h3>Switch Ports</h3>
+
+        <p id="portPowerUsageSum"></p>
+        
         <h4>Pumps</h4>
         <button type="button" id="addPumpPort">Add Port</button>
         <button type="button" id="removePumpPort">Remove Port</button>
@@ -71,6 +74,8 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
             <label>Year:   <input type="number" id="timeYear" min="1970" max="2100" value="2026"></label><br>
         </div>
 
+        <br>
+        <p id="errors" style="color:#FF0000;"></p>
         <br>
         <button type="submit">Add Routine</button>
     </form>
@@ -128,16 +133,54 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
 
         let switchPorts = null;
 
+        const MAX_BATTERY_POWER = 3.8 * 3.3; // 3.8A * 3.3V = 12.54W
+
+        function CalculatePortPowerSum() {
+            if (!switchPorts) return 0;
+
+            const pumpSelects = pumpPortsContainer.querySelectorAll("select");
+            const pumpPorts = Array.from(pumpSelects).map(s => s.value).filter(v => v !== "");
+
+            const valveSelects = valvePortsContainer.querySelectorAll("select");
+            const valvePorts = Array.from(valveSelects).map(s => s.value).filter(v => v !== "");
+
+            let powerBatterySum = 0;
+
+            pumpPorts.forEach(pumpPort => {
+                const pump = switchPorts.pumps.find(p => Number(p.index) === Number(pumpPort));
+
+                if (pump && !pump.externalPower) {
+                    powerBatterySum += pump.current * pump.voltage;
+                };
+            });
+            valvePorts.forEach(valvePort => {
+                const valve = switchPorts.valves.find(v => Number(v.index) === Number(valvePort));
+
+                if (valve && !valve.externalPower) {
+                    powerBatterySum += valve.current * valve.voltage;
+                };
+            });
+
+            let portPowerUsageSum = document.getElementById("portPowerUsageSum");
+            portPowerUsageSum.innerText = `Port Battery Power Usage: ${powerBatterySum}W / ${MAX_BATTERY_POWER}W, ${switchPorts.pumps[0].index}`;
+
+            return powerBatterySum;
+        }
+
         document.getElementById("addPumpPort").addEventListener("click", () => {
             const li = document.createElement("li");
 
             CreatePortSelection(switchPorts.pumps, li);
 
             pumpPortsContainer.appendChild(li);
+
+            CalculatePortPowerSum();
         });
         document.getElementById("removePumpPort").addEventListener("click", () => {
             const last = pumpPortsContainer.lastElementChild;
             if (last) last.remove();
+
+            CalculatePortPowerSum();
         });
         document.getElementById("addValvePort").addEventListener("click", () => {
             const li = document.createElement("li");
@@ -145,10 +188,14 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
             CreatePortSelection(switchPorts.valves, li);
 
             valvePortsContainer.appendChild(li);
+
+            CalculatePortPowerSum();
         });
         document.getElementById("removeValvePort").addEventListener("click", () => {
             const last = valvePortsContainer.lastElementChild;
             if (last) last.remove();
+
+            CalculatePortPowerSum();
         });
 
         document.getElementById("addTempDuration").addEventListener("click", () => {
@@ -172,6 +219,17 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
             }
         });
 
+        pumpPortsContainer.addEventListener("input", e => {
+            if (e.target.tagName === "SELECT") {
+                CalculatePortPowerSum();
+            }
+        });
+        valvePortsContainer.addEventListener("input", e => {
+            if (e.target.tagName === "SELECT") {
+                CalculatePortPowerSum();
+            }
+        });
+
         document.getElementById("routineForm").addEventListener("submit", async (e) => {
             e.preventDefault();
 
@@ -187,6 +245,15 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
 
             const valveSelects = valvePortsContainer.querySelectorAll("select");
             const valvePorts = Array.from(valveSelects).map(s => s.value).filter(v => v !== "");
+
+            const powerBatterySum = CalculatePortPowerSum();
+            const errors = document.getElementById("errors");
+            errors.innerText = "";
+
+            if (powerBatterySum > MAX_BATTERY_POWER) { // 3.8A * 3.3V = 12.54W
+                errors.innerText = `* Port Battery Power Usage (${powerBatterySum}W) > Max Battery Power (${MAX_BATTERY_POWER}W): Decrease Port Power Usage`;
+                return;
+            }
 
             // Temp Range Durations
             const tempContainer = document.getElementById("tempDurationsContainer");
@@ -232,6 +299,7 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
 
         document.addEventListener("DOMContentLoaded", async () => {
             await LoadSwitchPorts();
+            CalculatePortPowerSum();
         });
     </script>
 </body>

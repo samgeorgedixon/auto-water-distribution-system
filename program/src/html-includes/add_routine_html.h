@@ -28,12 +28,12 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
         <input type="text" id="name" name="name" required><br><br>
 
         <label for="timeInterval">Time Interval:</label>
-        <input type="number" id="timeInterval" name="timeInterval" required>
+        <input type="number" min="1" step=".01" id="timeInterval" name="timeInterval" required>
         <select id="timeIntervalUnit" name="timeIntervalUnit">
-            <option value="seconds">Seconds</option>
-            <option value="minutes">Minutes</option>
-            <option value="hours">Hours</option>
-            <option value="days">Days</option>
+            <option value="sec">Seconds</option>
+            <option value="min">Minutes</option>
+            <option value="hour">Hours</option>
+            <option value="day">Days</option>
         </select>
 
         <h3>Switch Ports</h3>
@@ -48,30 +48,24 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
 
         <h4>Valves</h4>
 
+        <label for="staggerValves">Stagger Valves:</label>
+        <input type="checkbox" id="staggerValves"><br>
+
         <button type="button" id="addValvePort">Add Port</button>
         <button type="button" id="removeValvePort">Remove Port</button>
 
         <ul id="valvePortsContainer"></ul>
-        <br>
 
-        <h3>Durations (s) between Temperatures (°C)</h3>
-        <div id="tempDurationsContainer">
-            <label style="margin-left: 120px;"><= , Duration: </label>
-            <input type="number" value=0 style="width: 50px;">
-            <br>
-        </div>
+        <h3>Durations (s) at Temperatures (°C): In Order</h3>
         <button type="button" id="addTempDuration">Add Temp Duration</button>
         <button type="button" id="removeTempDuration">Remove Temp Duration</button>
-        <br>
+
+        <ul id="tempDurationsContainer"></ul>
 
         <h3>Start Time:</h3>
         <div id="specificTimeContainer">
-            <label>Second: <input type="number" id="timeSec" min="0" max="59" value="0"></label><br>
-            <label>Minute: <input type="number" id="timeMin" min="0" max="59" value="0"></label><br>
-            <label>Hour:   <input type="number" id="timeHour" min="0" max="23" value="0"></label><br>
-            <label>Date:   <input type="number" id="timeDayDate" min="1" max="31" value="1"></label><br>
-            <label>Month:  <input type="number" id="timeMonth" min="1" max="12" value="1"></label><br>
-            <label>Year:   <input type="number" id="timeYear" min="1970" max="2100" value="2026"></label><br>
+            <label>Time: <input type="time" required id="startTime" step="1"></label><br>
+            <label>Date: <input type="date" required id="startDate" min="2000-01-01" max="2100-01-01"></label><br>
         </div>
 
         <br>
@@ -81,11 +75,13 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
     </form>
 
     <script>
+        const staggerValves = document.getElementById("staggerValves");
+
         const unitToSeconds = {
-            seconds: 1,
-            minutes: 60,
-            hours: 3600,
-            days: 86400
+            sec: 1,
+            min: 60,
+            hour: 3600,
+            day: 86400
         };
         
         function CreateCheckbox(container, isChecked) {
@@ -98,6 +94,17 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
         function CreateTextInput(container) {
             const input = document.createElement("input");
             input.type = "number";
+            input.style.width = "50px";
+            container.appendChild(input);
+        }
+        function CreateNumberMinMaxInput(container, text, min, max) {
+            const input = document.createElement("input");
+            input.type = "number";
+
+            input.value = text;
+            input.min = min;
+            input.max = max;
+            
             input.style.width = "50px";
             container.appendChild(input);
         }
@@ -121,7 +128,7 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
             jsonList.forEach(item => {
                 const option = document.createElement("option");
                 option.value = item.index;
-                option.textContent = `${item.index}: ${item.current}A, ${item.voltage}V`;
+                option.textContent = `${item.index}: ${item.current}A x ${item.voltage}V = ${(item.current * item.voltage).toFixed(2)}W (${item.externalPower ? "External Power" : "Battery Power"})`;
                 select.appendChild(option);
             });
 
@@ -153,16 +160,33 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
                     powerBatterySum += pump.current * pump.voltage;
                 };
             });
-            valvePorts.forEach(valvePort => {
-                const valve = switchPorts.valves.find(v => Number(v.index) === Number(valvePort));
+            if (staggerValves.checked) {
+                let largest = 0;
 
-                if (valve && !valve.externalPower) {
-                    powerBatterySum += valve.current * valve.voltage;
-                };
-            });
+                valvePorts.forEach(valvePort => {
+                    const valve = switchPorts.valves.find(v => Number(v.index) === Number(valvePort));
+
+                    let power = valve.current * valve.voltage;
+
+                    if (valve && !valve.externalPower && power > largest) {
+                        largest = power;
+                    };
+                });
+
+                powerBatterySum += largest;
+            }
+            else {
+                valvePorts.forEach(valvePort => {
+                    const valve = switchPorts.valves.find(v => Number(v.index) === Number(valvePort));
+
+                    if (valve && !valve.externalPower) {
+                        powerBatterySum += valve.current * valve.voltage;
+                    };
+                });
+            }
 
             let portPowerUsageSum = document.getElementById("portPowerUsageSum");
-            portPowerUsageSum.innerText = `Port Battery Power Usage: ${powerBatterySum}W / ${MAX_BATTERY_POWER}W, ${switchPorts.pumps[0].index}`;
+            portPowerUsageSum.innerText = `Port Battery Power Usage: ${powerBatterySum.toFixed(2)}W / ${MAX_BATTERY_POWER}W`;
 
             return powerBatterySum;
         }
@@ -201,22 +225,21 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
         document.getElementById("addTempDuration").addEventListener("click", () => {
             const tempDurationsContainer = document.getElementById("tempDurationsContainer");
 
-            CreateLabel(tempDurationsContainer, "< Temp: ");
-            CreateTextInput(tempDurationsContainer);
+            const li = document.createElement("li");
 
-            CreateLabel(tempDurationsContainer, " <= , Duration: ");
-            CreateTextInput(tempDurationsContainer);
+            CreateLabel(li, "<= Temp: ");
+            CreateNumberMinMaxInput(li, "", -40, 80);
+
+            CreateLabel(li, " ≡ Duration: ");
+            CreateNumberMinMaxInput(li, "", 0, "");
             
-            tempDurationsContainer.appendChild(document.createElement("br"));
+            tempDurationsContainer.appendChild(li);
         });
         document.getElementById("removeTempDuration").addEventListener("click", () => {
             const tempDurationsContainer = document.getElementById("tempDurationsContainer");
 
-            for (let i = 0; i < 5; i++) {
-                const last = tempDurationsContainer.lastElementChild;
-                if (last && tempDurationsContainer.children.length > 3) last.remove();
-                else break;
-            }
+            const last = tempDurationsContainer.lastElementChild;
+            if (last) last.remove();
         });
 
         pumpPortsContainer.addEventListener("input", e => {
@@ -228,6 +251,9 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
             if (e.target.tagName === "SELECT") {
                 CalculatePortPowerSum();
             }
+        });
+        staggerValves.addEventListener('change', (event) => {
+            CalculatePortPowerSum();
         });
 
         document.getElementById("routineForm").addEventListener("submit", async (e) => {
@@ -251,36 +277,37 @@ const char add_routine_html[] PROGMEM = R"rawliteral(
             errors.innerText = "";
 
             if (powerBatterySum > MAX_BATTERY_POWER) { // 3.8A * 3.3V = 12.54W
-                errors.innerText = `* Port Battery Power Usage (${powerBatterySum}W) > Max Battery Power (${MAX_BATTERY_POWER}W): Decrease Port Power Usage`;
+                errors.innerText = `* Port Battery Power Usage (${powerBatterySum.toFixed(2)}W) > Max Battery Power (${MAX_BATTERY_POWER}W): Decrease Port Power Usage`;
                 return;
             }
 
             // Temp Range Durations
             const tempContainer = document.getElementById("tempDurationsContainer");
-            const tempRangeDurations = Array.from(tempContainer.querySelectorAll("input[type=number]")).map(inp => parseInt(inp.value) || 0);
+
+            const tempRangeDurationsInputs = tempContainer.querySelectorAll("input[type=number]");
+            const tempRangeDurations = Array.from(tempRangeDurationsInputs).map(s => parseFloat(s.value)).filter(v => !isNaN(v));
 
             // New time
-            const time = {
-                sec: parseInt(document.getElementById("timeSec").value) || 0,
-                min: parseInt(document.getElementById("timeMin").value) || 0,
-                hour: parseInt(document.getElementById("timeHour").value) || 0,
-                dayDate: parseInt(document.getElementById("timeDayDate").value) || 1,
-                month: parseInt(document.getElementById("timeMonth").value) || 1,
-                year: parseInt(document.getElementById("timeYear").value) || 2026
-            };
+            const timeInput = document.getElementById("startTime").value;
+            const dateInput = document.getElementById("startDate").value;
+            
+            const [h, m, s = "0"] = timeInput.split(":");
+            const [y, mm, d] = dateInput.split("-");
 
             const routineJson = {
                 name,
                 timeInterval,
+                timeIntervalUnit,
                 pumpPorts,
                 valvePorts,
+                staggerValves: staggerValves.checked,
                 tempRangeDurations,
-                newTimeSec: time.sec,
-                newTimeMin: time.min,
-                newTimeHour: time.hour,
-                newTimeDayDate: time.dayDate,
-                newTimeMonth: time.month,
-                newTimeYear: time.year
+                newTimeSec: parseInt(s) || 0,
+                newTimeMin: parseInt(m) || 0,
+                newTimeHour: parseInt(h) || 0,
+                newTimeDayDate: parseInt(d) || 1,
+                newTimeMonth: parseInt(mm) || 1,
+                newTimeYear: parseInt(y) || 2000
             };
 
             const response = await fetch("/api/routine/add", {

@@ -59,7 +59,7 @@ void HandleGetTemp() {
     server.send(200, "text/plain", temp);
 }
 void HandleGetTime() {
-    Time time = GetTimeNow();
+    Time time = GetTime();
 
     WiFiClient client = server.client();
 
@@ -155,16 +155,20 @@ void HandleAddRoutineAPI() {
 
     routine.pumpPorts = {};
     routine.valvePorts = {};
+    routine.staggerValves = false;
     routine.tempRangeDurations = {};
     
     routine.name = doc["name"].as<String>().c_str();
-    routine.timeInterval = doc["timeInterval"].as<int>();
+    routine.timeInterval = doc["timeInterval"].as<float>();
+    routine.timeIntervalUnit = doc["timeIntervalUnit"].as<String>();
 
     JsonArray pumpPorts = doc["pumpPorts"].as<JsonArray>();
     for (uint32_t b : pumpPorts) routine.pumpPorts.push_back(b - 1);
 
     JsonArray valvePorts = doc["valvePorts"].as<JsonArray>();
     for (uint32_t b : valvePorts) routine.valvePorts.push_back(b - 1);
+
+    routine.staggerValves = doc["staggerValves"].as<bool>();
     
     JsonArray temps = doc["tempRangeDurations"].as<JsonArray>();
     for (int t : temps) routine.tempRangeDurations.push_back(t);
@@ -198,16 +202,20 @@ void HandleEditRoutineAPI() {
 
     routine.pumpPorts = {};
     routine.valvePorts = {};
+    routine.staggerValves = false;
     routine.tempRangeDurations = {};
     
     routine.name = doc["name"].as<String>().c_str();
-    routine.timeInterval = doc["timeInterval"].as<int>();
+    routine.timeInterval = doc["timeInterval"].as<float>();
+    routine.timeIntervalUnit = doc["timeIntervalUnit"].as<String>();
 
     JsonArray pumpPorts = doc["pumpPorts"].as<JsonArray>();
     for (uint32_t b : pumpPorts) routine.pumpPorts.push_back(b - 1);
 
     JsonArray valvePorts = doc["valvePorts"].as<JsonArray>();
     for (uint32_t b : valvePorts) routine.valvePorts.push_back(b - 1);
+
+    routine.staggerValves = doc["staggerValves"].as<bool>();
     
     JsonArray temps = doc["tempRangeDurations"].as<JsonArray>();
     for (int t : temps) routine.tempRangeDurations.push_back(t);
@@ -244,6 +252,7 @@ void HandleRemoveRoutineAPI() {
 void RoutineToJson(const SwitchRoutine &routine, DynamicJsonDocument& doc) {
     doc["name"] = routine.name.c_str();
     doc["timeInterval"] = routine.timeInterval;
+    doc["timeIntervalUnit"] = routine.timeIntervalUnit;
 
     JsonArray pumpPortsJson = doc.createNestedArray("pumpPorts");
     for (int i = 0; i < routine.pumpPorts.size(); i++) {
@@ -253,6 +262,8 @@ void RoutineToJson(const SwitchRoutine &routine, DynamicJsonDocument& doc) {
     for (int i = 0; i < routine.valvePorts.size(); i++) {
         valvePortsJson.add(routine.valvePorts[i]);
     }
+
+    doc["staggerValves"] = routine.staggerValves;
 
     JsonArray tempRangeDurationsJson = doc.createNestedArray("tempRangeDurations");
     for (int i = 0; i < routine.tempRangeDurations.size(); i++) {
@@ -440,7 +451,7 @@ void SetupNetwork() {
     delay(100);
 
     WiFi.softAPConfig(localIP, gateway, subnet);
-    WiFi.softAP(ssid, password);
+    WiFi.softAP(ssid.c_str(), password.c_str());
 
     SetupServerHandles();
     server.begin();

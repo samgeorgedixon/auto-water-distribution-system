@@ -4,19 +4,27 @@
 
 #include <Arduino.h>
 #include <DHT.h>
-#include <time.h>
+#include <RTClib.h>
+#include <Wire.h>
+#include <esp_sleep.h>
 
-// #define _PIN 16
-#define LED_PIN 21              // Out
-#define WIFI_SWITCH_PIN 22      // In
+#define LED_PIN 19              // Out
 #define TEMP_SENSOR_PIN 23      // In/Out
+#define WIFI_SWITCH_PIN 25      // In
+
+// GPIO 21  (I²C SDA)
+// GPIO 22  (I²C SCL)
 
 // Outputs to 74HC595 Chip
-#define SWITCH_DATA_PIN 19      // Out
-#define SWITCH_SRCLK_PIN 22     // Out: Write Internal Clock
-#define SWITCH_RCLK_PIN 17      // Out: Output Clock
+#define SWITCH_DATA_PIN 18      // Out
+#define SWITCH_SRCLK_PIN 17     // Out: Write Internal Clock
+#define SWITCH_RCLK_PIN 16      // Out: Output Clock
 
 DHT dht(TEMP_SENSOR_PIN, DHT22);
+
+RTC_DS3231 rtcExternal;
+RTC_Millis rtcInternal;
+bool externalRTC = true;
 
 std::vector<uint8_t> portStates;
 std::vector<uint8_t> currentPortStates;
@@ -30,12 +38,39 @@ void SetupComponents() {
     pinMode(SWITCH_SRCLK_PIN, OUTPUT);
     pinMode(SWITCH_RCLK_PIN, OUTPUT);
 
+    Wire.begin();
+
+    if (!rtcExternal.begin()) {
+        Serial.println("External RTC Not Found - Using Internal RTC.");
+
+        rtcInternal.begin(DateTime(2000, 1, 1, 0, 0, 0));
+
+        externalRTC = false;
+    }
+
 	Serial.println("Components Setup");
+}
+
+void LightSleep(uint32_t seconds) {
+    if (seconds == 0) {
+        return;
+    }
+    pinMode(WIFI_SWITCH_PIN, INPUT);
+
+    esp_sleep_enable_timer_wakeup((uint64_t)seconds * 1000000ULL);
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)WIFI_SWITCH_PIN, 1);
+    esp_light_sleep_start();
+
+    pinMode(WIFI_SWITCH_PIN, INPUT_PULLDOWN);
 }
 
 int GetTemp() {
     int temp = (int)dht.readTemperature();
-	Serial.printf("Temp: %d\n", temp);
+    
+    if (temp < -40 || temp > 80) {
+        temp = 0;
+    }
+    Serial.printf("Temp: %d\n", temp);
 
     return temp;
 }
@@ -49,49 +84,61 @@ void SetLED(bool state) {
     Serial.printf("LED State: %d\n", state);
 }
 
-Time GetTimeNow() {
-    time_t now = time(NULL);
-    tm *t = localtime(&now);
+Time GetTime() {
+    DateTime now;
+    if (externalRTC) {
+        now = rtcExternal.now();
+    }
+    else {
+        now = rtcInternal.now();
+    }
 
-    Time time;
-    time.sec = t->tm_sec;
-    time.min = t->tm_min;
-    time.hour = t->tm_hour;
-    time.dayDate = t->tm_mday;
-    time.month = t->tm_mon + 1;
-    time.year = t->tm_year + 1900;
+    Time time = {};
+    time.sec = now.second();
+    time.min = now.minute();
+    time.hour = now.hour();
+    time.dayDate = now.day();
+    time.month = now.month();
+    time.year = now.year();
 
     return time;
 }
 void SetTime(const Time& time) {
-    tm timeInfo = {};
-    timeInfo.tm_sec  = time.sec;
-    timeInfo.tm_min  = time.min;
-    timeInfo.tm_hour = time.hour;
-    timeInfo.tm_mday = time.dayDate;
-    timeInfo.tm_mon  = time.month - 1;
-    timeInfo.tm_year = time.year - 1900;
-
-    time_t t = mktime(&timeInfo);
-    timeval now = { .tv_sec = t };
-    settimeofday(&now, NULL);
+    DateTime newTime(time.year, time.month, time.dayDate, time.hour, time.min, time.sec);
+    
+    if (externalRTC) {
+        rtcExternal.adjust(newTime);
+    }
+    else {
+        rtcInternal.adjust(newTime);
+    }
 }
 
-unsigned int GetTimeNowSeconds() {
-    time_t now = time(NULL);
-    return (unsigned int)now;
+uint32_t GetTimeSeconds() {
+    DateTime now;
+    if (externalRTC) {
+        now = rtcExternal.now();
+    }
+    else {
+        now = rtcInternal.now();
+    }
+    uint32_t timeSeconds = now.unixtime();
+    
+    return timeSeconds;
 }
-unsigned int ConvertTimeToSeconds(const Time& time) {
-    tm timeInfo = {};
-    timeInfo.tm_sec  = time.sec;
-    timeInfo.tm_min  = time.min;
-    timeInfo.tm_hour = time.hour;
-    timeInfo.tm_mday = time.dayDate;
-    timeInfo.tm_mon  = time.month - 1;
-    timeInfo.tm_year = time.year - 1900;
+void SetTimeSeconds(uint32_t seconds) {
+    if (externalRTC) {
+        rtcExternal.adjust(DateTime(seconds));
+    }
+    else {
+        rtcInternal.adjust(DateTime(seconds));
+    }
+}
 
-    time_t now = mktime(&timeInfo);
-    return (unsigned int)now;
+uint32_t ConvertTimeToSeconds(const Time& time) {
+    DateTime newTime(time.year, time.month, time.dayDate, time.hour, time.min, time.sec);
+
+    return newTime.unixtime();
 }
 
 void EnableSwitchPorts(std::vector<uint32_t> ports) {

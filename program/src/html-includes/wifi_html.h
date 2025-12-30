@@ -24,12 +24,12 @@ const char wifi_html[] PROGMEM = R"rawliteral(
 
     <form id="ssidForm">
         <label for="ssid">SSID</label>
-        <input type="text" name="ssid">
+        <input type="text" minlength="1" maxlength="31" name="ssid">
         <input type="submit" value="Set SSID">
     </form>
     <form id="passwordForm">
         <label for="password">Password </label>
-        <input type="password" name="password">
+        <input type="password" minlength="3" name="password">
         <input type="submit" value="Set Password">
     </form>
 

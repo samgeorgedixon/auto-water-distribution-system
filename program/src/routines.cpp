@@ -18,7 +18,9 @@ void SetPerminantRoutine(int index, SwitchRoutine& routine) {
 
     routinePreferences.begin(routineName.c_str(), false);
     routinePreferences.putString("name", routine.name.c_str());
-    routinePreferences.putInt("timeInterval", routine.timeInterval);
+    routinePreferences.putFloat("timeInterval", routine.timeInterval);
+    routinePreferences.putString("tiUnit", routine.timeIntervalUnit);
+    routinePreferences.putBool("staggerValves", routine.staggerValves);
 
     routinePreferences.putInt("ppCount", routine.pumpPorts.size());
     routinePreferences.putInt("vpCount", routine.valvePorts.size());
@@ -47,7 +49,9 @@ SwitchRoutine GetPerminantRoutine(int index) {
 
     routinePreferences.begin(routineName.c_str(), false);
     routine.name = routinePreferences.getString("name", "");
-    routine.timeInterval = routinePreferences.getInt("timeInterval", 0);
+    routine.timeInterval = routinePreferences.getFloat("timeInterval", 0);
+    routine.timeIntervalUnit = routinePreferences.getString("tiUnit", "sec");
+    routine.staggerValves = routinePreferences.getBool("staggerValves", false);
     
     int pumpPortsCount = routinePreferences.getInt("ppCount", 0);
     int valvePortsCount = routinePreferences.getInt("vpCount", 0);
@@ -63,7 +67,7 @@ SwitchRoutine GetPerminantRoutine(int index) {
     routinePreferences.getBytes("tempRangeDur", &routine.tempRangeDurations[0], tempRangeDurationsCount * sizeof(int)); // Int32: 4 Char
     
     //routine.newTime = routinePreferences.getInt("newTime", GetTimeNowSeconds());
-    routine.newTime = GetTimeNowSeconds();
+    routine.newTime = GetTimeSeconds();
 
     routine.done = true;
     routine.timeDuration = 0;
@@ -180,40 +184,96 @@ void SetSwitchPorts(SwitchPorts ports) {
 }
 
 int GetCurrentTimeDuration(const SwitchRoutine& switchRoutine) {
+    if (switchRoutine.tempRangeDurations.size() == 0) {
+        return 0;
+    }
     int temp = GetTemp();
 
-    for (int i = 1; i < switchRoutine.tempRangeDurations.size(); i += 2) {
+    for (int i = 0; i < switchRoutine.tempRangeDurations.size(); i += 2) {
         if (temp < switchRoutine.tempRangeDurations[i]) {
-            return switchRoutine.tempRangeDurations[i - 1];
+            return switchRoutine.tempRangeDurations[i + 1];
         }
     }
-
     return switchRoutine.tempRangeDurations[switchRoutine.tempRangeDurations.size() - 1];
 }
 
-void UpdateSwitch() {
+void StartRoutine(SwitchRoutine& switchRoutine) {
+    switchRoutine.timeDuration = GetCurrentTimeDuration(switchRoutine);
+    
+    if (switchRoutine.timeDuration != 0) {
+        EnableSwitchPorts(switchRoutine.pumpPorts);
+
+        if (switchRoutine.staggerValves) {
+            switchRoutine.currentStaggerValveIndex = 0;
+            EnableSwitchPorts({ switchRoutine.valvePorts[switchRoutine.currentStaggerValveIndex] });
+        }
+        else {
+            EnableSwitchPorts(switchRoutine.valvePorts);
+        }
+        UpdateSwitchPorts(SWITCH_BIT_WIDTH);
+    }
+    switchRoutine.done = false;
+}
+void StopRoutine(SwitchRoutine& switchRoutine) {
+    if (switchRoutine.timeDuration != 0) {
+        if (switchRoutine.staggerValves && switchRoutine.currentStaggerValveIndex < switchRoutine.valvePorts.size() - 1) {
+            DisableSwitchPorts({ switchRoutine.valvePorts[switchRoutine.currentStaggerValveIndex] });
+
+            switchRoutine.currentStaggerValveIndex++;
+
+            EnableSwitchPorts({ switchRoutine.valvePorts[switchRoutine.currentStaggerValveIndex] });
+
+            UpdateSwitchPorts(SWITCH_BIT_WIDTH);
+            
+            switchRoutine.timeDuration += GetCurrentTimeDuration(switchRoutine);
+
+            return;
+        }
+        else {
+            DisableSwitchPorts(switchRoutine.pumpPorts);
+            DisableSwitchPorts(switchRoutine.valvePorts);
+            
+            UpdateSwitchPorts(SWITCH_BIT_WIDTH);
+        }
+    }
+    
+    switchRoutine.newTime += switchRoutine.timeInterval;
+    
+    switchRoutine.done = true;
+}
+
+void UpdateSwitch(bool wifiOn) {
+    uint32_t now = GetTimeSeconds();
+    uint32_t smallestNewTime = 0xffffffff; // Seconds
+
     for (int i = 0; i < switchRoutines.size(); i++) {
-        if (GetTimeNowSeconds() >= switchRoutines[i].newTime && switchRoutines[i].done) {
-            switchRoutines[i].timeDuration = GetCurrentTimeDuration(switchRoutines[i]);
-            
-            if (switchRoutines[i].timeDuration != 0) {
-                EnableSwitchPorts(switchRoutines[i].pumpPorts);
-                EnableSwitchPorts(switchRoutines[i].valvePorts);
-                UpdateSwitchPorts(SWITCH_BIT_WIDTH);
-            }
-            
-            switchRoutines[i].done = false;
+        if (now >= switchRoutines[i].newTime && switchRoutines[i].done) {
+            StartRoutine(switchRoutines[i]);
         }
-        if (GetTimeNowSeconds() - switchRoutines[i].newTime >= switchRoutines[i].timeDuration && !switchRoutines[i].done) {
-            if (switchRoutines[i].timeDuration != 0) {
-                DisableSwitchPorts(switchRoutines[i].pumpPorts);
-                DisableSwitchPorts(switchRoutines[i].valvePorts);
-                UpdateSwitchPorts(SWITCH_BIT_WIDTH);
-            }
-            
-            switchRoutines[i].newTime += switchRoutines[i].timeInterval;
-            
-            switchRoutines[i].done = true;
+        if (now - switchRoutines[i].newTime >= switchRoutines[i].timeDuration && !switchRoutines[i].done) {
+            StopRoutine(switchRoutines[i]);
         }
+
+        if (switchRoutines[i].newTime < smallestNewTime && switchRoutines[i].newTime > now) {
+            smallestNewTime = switchRoutines[i].newTime;
+        }
+    }
+
+    if (smallestNewTime == 0xffffffff || wifiOn) {
+        return;
+    }
+
+    uint32_t smallestTimeGap = smallestNewTime - now;
+    if (smallestTimeGap > 2628000) { // > ~1 Month
+        LightSleep(smallestTimeGap - 1800); // Wakeup 30mins Before.
+    }
+    else if (smallestTimeGap > 86400) { // > 1 Day
+        LightSleep(smallestTimeGap - 120); // Wakeup 2mins Before.
+    }
+    else if (smallestTimeGap > 3600) { // > 1 Hour
+        LightSleep(smallestTimeGap - 10); // Wakeup 10secs Before.
+    }
+    else if (smallestTimeGap > 1) { // > 1 Sec
+        LightSleep(smallestTimeGap - 1); // Wakeup 1sec Before.
     }
 }

@@ -21,12 +21,8 @@
     <form id="timeForm">
         <h3>Set Time:</h3>
         <div id="timeContainer">
-            <label>Second: <input type="number" id="timeSec" min="0" max="59" value="0"></label><br>
-            <label>Minute: <input type="number" id="timeMin" min="0" max="59" value="0"></label><br>
-            <label>Hour:   <input type="number" id="timeHour" min="0" max="23" value="0"></label><br>
-            <label>Date:   <input type="number" id="timeDayDate" min="1" max="31" value="1"></label><br>
-            <label>Month:  <input type="number" id="timeMonth" min="1" max="12" value="1"></label><br>
-            <label>Year:   <input type="number" id="timeYear" min="1970" max="2100" value="2026"></label><br>
+            <label>Time: <input type="time" required id="time" step="1"></label><br>
+            <label>Date: <input type="date" required id="date" min="2000-01-01" max="2100-01-01"></label><br>
         </div>
 
         <button type="submit">Set Time</button>
@@ -36,13 +32,19 @@
         document.getElementById("timeForm").addEventListener("submit", async (e) => {
             e.preventDefault();
 
+            const timeInput = document.getElementById("time").value;
+            const dateInput = document.getElementById("date").value;
+            
+            const [h, m, s = "0"] = timeInput.split(":");
+            const [y, mm, d] = dateInput.split("-");
+
             const timeJson = {
-                sec: parseInt(document.getElementById("timeSec").value) || 0,
-                min: parseInt(document.getElementById("timeMin").value) || 0,
-                hour: parseInt(document.getElementById("timeHour").value) || 0,
-                dayDate: parseInt(document.getElementById("timeDayDate").value) || 1,
-                month: parseInt(document.getElementById("timeMonth").value) || 0,
-                year: parseInt(document.getElementById("timeYear").value) || 2026
+                sec: parseInt(s) || 0,
+                min: parseInt(m) || 0,
+                hour: parseInt(h) || 0,
+                dayDate: parseInt(d) || 1,
+                month: parseInt(mm) || 1,
+                year: parseInt(y) || 2000
             };
 
             const response = await fetch(`/api/set-time`, {

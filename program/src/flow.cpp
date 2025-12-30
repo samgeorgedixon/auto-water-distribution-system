@@ -12,22 +12,22 @@ void SetupProgram() {
     ResetToAllPerminantRoutines();
 }
 
-bool WifiOn = false;
+bool wifiOn = false;
 
 void UpdateProgram() {
-    UpdateSwitch();
+    UpdateSwitch(wifiOn);
 
-    if (GetWifiSwitchStatus() && !WifiOn) {
+    if (GetWifiSwitchStatus() && !wifiOn) {
         SetupNetwork();
-        WifiOn = true;
+        wifiOn = true;
 
         SetLED(true);
         Serial.println("Wifi On");
         
         delay(20);
-    } else if (!GetWifiSwitchStatus() && WifiOn) {
+    } else if (!GetWifiSwitchStatus() && wifiOn) {
         StopNetwork();
-        WifiOn = false;
+        wifiOn = false;
 
         SetLED(false);
         Serial.println("Wifi Off");
@@ -35,7 +35,11 @@ void UpdateProgram() {
         delay(20);
     }
 
-    if (WifiOn) {
+    if (wifiOn) {
         UpdateNetwork();
+    }
+    else {
+        esp_sleep_enable_timer_wakeup(200 * 1000ULL); // 200 ms
+        esp_light_sleep_start();
     }
 }

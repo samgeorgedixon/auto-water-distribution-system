@@ -6,12 +6,14 @@ struct Time {
     int sec;
     int min;
     int hour;
-    int dayDate; // Starts 1
+    int dayDate; // 1st = 1
     int month; // Jan = 1
     int year;
 };
 
 void SetupComponents();
+
+void LightSleep(uint32_t seconds);
 
 int GetTemp();
 bool GetWifiSwitchStatus();
@@ -23,9 +25,10 @@ void EnableSwitchPorts(std::vector<uint32_t> ports);
 void DisableSwitchPorts(std::vector<uint32_t> ports);
 void UpdateSwitchPorts(int bitWidth);
 
-Time GetTimeNow();
+Time GetTime();
 void SetTime(const Time& time);
 
-unsigned int GetTimeNowSeconds();
-unsigned int ConvertTimeToSeconds(const Time &time);
+uint32_t GetTimeSeconds();
+uint32_t SetTimeSeconds();
 
+uint32_t ConvertTimeToSeconds(const Time &time);

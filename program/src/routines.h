@@ -20,17 +20,21 @@ struct SwitchPorts {
 
 struct SwitchRoutine {
     String name;
-    int timeInterval; // Seconds
+    float timeInterval; // Seconds
+    String timeIntervalUnit;
 
     std::vector<uint32_t> pumpPorts;
     std::vector<uint32_t> valvePorts;
 
-    std::vector<int> tempRangeDurations; // Duration,  < Temp <=, Duration,  < Temp <=, Duration
-    
-    unsigned int newTime;
+    bool staggerValves;
 
+    std::vector<int> tempRangeDurations;
+    
+    uint32_t newTime;
+
+    int currentStaggerValveIndex;
     bool done;
-    int timeDuration;
+    uint32_t timeDuration;
 };
 
 void ResetToAllPerminantRoutines();
@@ -45,4 +49,4 @@ void ResetToPerminantSwitchPorts();
 const SwitchPorts& GetSwitchPorts();
 void SetSwitchPorts(SwitchPorts switchPorts);
 
-void UpdateSwitch();
+void UpdateSwitch(bool wifiOn);

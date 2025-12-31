@@ -431,7 +431,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "ris_command-module.kicad_pro",
+    "filename": "ris_switch-module.kicad_pro",
     "version": 1
   },
   "net_settings": {
@@ -469,7 +469,7 @@
       "plot": "",
       "pos_files": "",
       "specctra_dsn": "",
-      "step": "../../model/asm/electronic-components/ris_command-module.step",
+      "step": "../../model/asm/pcb/ris_switch-module.step",
       "svg": "",
       "vrml": ""
     },

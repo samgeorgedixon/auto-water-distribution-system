@@ -469,7 +469,7 @@
       "plot": "",
       "pos_files": "",
       "specctra_dsn": "",
-      "step": "../../model/asm/pcb/ris_switch-module.step",
+      "step": "../../model/asm/electronic-components/ris_switch-module.step",
       "svg": "",
       "vrml": ""
     },

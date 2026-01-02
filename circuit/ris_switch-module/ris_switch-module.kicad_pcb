@@ -397,7 +397,7 @@
 		)
 		(model "G:/projects/primary/regulated-irrigation-system/model/asm/electronic-components/jst-vh-2p/jst-vh-2p.step"
 			(offset
-				(xyz 0 0 20)
+				(xyz -0.4 1.7 26.54)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -3156,7 +3156,7 @@
 		)
 		(model "G:/projects/primary/regulated-irrigation-system/model/asm/electronic-components/jst-vh-2p/jst-vh-2p.step"
 			(offset
-				(xyz 0 0 20)
+				(xyz -0.4 1.7 26.54)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -3728,6 +3728,17 @@
 			(pintype "passive")
 			(solder_mask_margin 0.102)
 			(uuid "6e4e5ed9-1a3e-44eb-9191-d7fe7e42881d")
+		)
+		(model "G:/projects/primary/regulated-irrigation-system/model/asm/electronic-components/jst-vh-2p/jst-vh-2p.step"
+			(offset
+				(xyz -0.4 1.7 26.54)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz -90 0 0)
+			)
 		)
 	)
 	(footprint "MOSFET-IRLZ44N:TO254P1054X469X1930-3"
@@ -5375,6 +5386,17 @@
 			(solder_mask_margin 0.102)
 			(uuid "feb59ae4-9d0d-41ca-822b-a769c138d129")
 		)
+		(model "G:/projects/primary/regulated-irrigation-system/model/asm/electronic-components/jst-vh-2p_short/jst-vh-2p_short-up.step"
+			(offset
+				(xyz 0 -7.28 15.1)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz 180 0 0)
+			)
+		)
 	)
 	(footprint "B5B-PH-K-S:JST_B5B-PH-K-S"
 		(layer "F.Cu")
@@ -5647,7 +5669,7 @@
 		)
 		(model "G:/projects/primary/regulated-irrigation-system/model/asm/electronic-components/jst-ph-5p/jst-ph-5p.step"
 			(offset
-				(xyz 4.7 -4.1 10)
+				(xyz 4 -0.33 -3.5)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -6769,6 +6791,17 @@
 			(pintype "passive")
 			(solder_mask_margin 0.102)
 			(uuid "50059873-08b9-49c0-8ae9-6c64241d5616")
+		)
+		(model "G:/projects/primary/regulated-irrigation-system/model/asm/electronic-components/jst-ph-5p/jst-ph-r5.step"
+			(offset
+				(xyz -4 -0.54 -3.06)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz -90 0 180)
+			)
 		)
 	)
 	(footprint "Diode_THT:D_DO-201AD_P12.70mm_Horizontal"
@@ -8379,6 +8412,17 @@
 			(solder_mask_margin 0.102)
 			(uuid "9e9f3207-f385-48f5-916a-30f711c28981")
 		)
+		(model "G:/projects/primary/regulated-irrigation-system/model/asm/electronic-components/jst-vh-2p/jst-vh-2p.step"
+			(offset
+				(xyz -0.4 1.7 26.54)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz -90 0 0)
+			)
+		)
 	)
 	(footprint "MOSFET-IRLZ44N:TO254P1054X469X1930-3"
 		(layer "F.Cu")
@@ -9089,6 +9133,17 @@
 			(pintype "passive")
 			(solder_mask_margin 0.102)
 			(uuid "9120c33c-8098-4456-a59a-67210a1060c5")
+		)
+		(model "G:/projects/primary/regulated-irrigation-system/model/asm/electronic-components/jst-vh-2p/jst-vh-2p.step"
+			(offset
+				(xyz -0.4 1.7 26.54)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz -90 0 0)
+			)
 		)
 	)
 	(footprint "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
@@ -11359,6 +11414,17 @@
 			(solder_mask_margin 0.102)
 			(uuid "9d3f9902-bd02-41e3-9d7a-22ad5db0e6b1")
 		)
+		(model "G:/projects/primary/regulated-irrigation-system/model/asm/electronic-components/jst-vh-2p_short/jst-vh-2p_short-up.step"
+			(offset
+				(xyz -0 7.28 15.1)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz 0 180 0)
+			)
+		)
 	)
 	(footprint "MOSFET-IRLZ44N:TO254P1054X469X1930-3"
 		(layer "F.Cu")
@@ -12344,6 +12410,17 @@
 			(pintype "passive")
 			(solder_mask_margin 0.102)
 			(uuid "ae5b74b4-642f-4119-8ea7-0e58895eaf57")
+		)
+		(model "G:/projects/primary/regulated-irrigation-system/model/asm/electronic-components/jst-vh-2p/jst-vh-2p.step"
+			(offset
+				(xyz -0.4 1.7 26.54)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz -90 0 0)
+			)
 		)
 	)
 	(gr_rect

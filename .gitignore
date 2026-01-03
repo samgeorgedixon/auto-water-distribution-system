@@ -2,5 +2,7 @@ OldVersions/
 *-backups/
 
 *.bak
+*.tmp
 fp-info-cache
 ~$*.xlsx
+~$*.pptx

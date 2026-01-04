@@ -74,9 +74,9 @@
 			(subtractmaskfromsilk no)
 			(outputformat 1)
 			(mirror no)
-			(drillshape 1)
+			(drillshape 0)
 			(scaleselection 1)
-			(outputdirectory "")
+			(outputdirectory "gerber/")
 		)
 	)
 	(net 0 "")
@@ -1834,7 +1834,7 @@
 			(uuid "13b79a09-7dce-4dc8-918e-1d896f7f5a5f")
 			(effects
 				(font
-					(size 0.641222 0.641222)
+					(size 1 1)
 					(thickness 0.15)
 				)
 			)

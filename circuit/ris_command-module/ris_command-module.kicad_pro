@@ -466,7 +466,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "ris_command-module_gerber/",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "../../model/asm/electronic-components/ris_command-module.step",

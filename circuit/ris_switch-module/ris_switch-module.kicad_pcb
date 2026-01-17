@@ -76,7 +76,7 @@
 			(mirror no)
 			(drillshape 0)
 			(scaleselection 1)
-			(outputdirectory "gerber/")
+			(outputdirectory "ris_switch-module_gerber/")
 		)
 	)
 	(net 0 "")
@@ -1384,12 +1384,12 @@
 		(uuid "1d03783a-b6c4-4004-b9ec-b7f8e477a83f")
 		(at 129.54 130.81 -90)
 		(property "Reference" "U5"
-			(at -7.62 -20.32 90)
+			(at 0 -20.32 90)
 			(layer "F.SilkS")
 			(uuid "2b0c0b81-6ec6-47d0-8b78-54e90a987713")
 			(effects
 				(font
-					(size 1.640874 1.640874)
+					(size 1 1)
 					(thickness 0.15)
 				)
 			)
@@ -4481,17 +4481,6 @@
 			(layer "F.Fab")
 			(uuid "9f939353-bb8a-4433-985b-d38ee55d16b3")
 		)
-		(fp_text user "K"
-			(at 0 -2.6 90)
-			(layer "F.SilkS")
-			(uuid "d6d4aae9-b139-45a5-be55-78a24cdcc734")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
 		(fp_text user "${REFERENCE}"
 			(at 7.62 0 90)
 			(layer "F.Fab")
@@ -6528,7 +6517,7 @@
 		(uuid "7b18447b-204d-4e43-bd4e-fc401fd72b28")
 		(at 118.83 141.16 90)
 		(property "Reference" "J1"
-			(at -4 -3.585 90)
+			(at -4 3.725 90)
 			(layer "F.SilkS")
 			(uuid "595ca80e-fd66-493c-b8b9-1a8487fc7e48")
 			(effects
@@ -7121,17 +7110,6 @@
 			)
 			(layer "F.Fab")
 			(uuid "2a328b59-5770-4662-9a4e-9b514c244b76")
-		)
-		(fp_text user "K"
-			(at 0 -2.6 90)
-			(layer "F.SilkS")
-			(uuid "70406bb5-89df-4f3f-847e-4ea94f288514")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
 		)
 		(fp_text user "${REFERENCE}"
 			(at 7.62 0 90)
@@ -8056,17 +8034,6 @@
 			)
 			(layer "F.Fab")
 			(uuid "ac185906-6e16-472d-afba-20ba045a8a64")
-		)
-		(fp_text user "K"
-			(at 0 -2.6 90)
-			(layer "F.SilkS")
-			(uuid "0f2f949c-0990-4504-99fd-6bc0f92a2d44")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
 		)
 		(fp_text user "${REFERENCE}"
 			(at 7.62 0 90)
@@ -9741,17 +9708,6 @@
 		)
 		(fp_text user "K"
 			(at 0 -2.6 90)
-			(layer "F.SilkS")
-			(uuid "b3efd034-d77d-440d-8824-2903dfc5ff89")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(fp_text user "K"
-			(at 0 -2.6 90)
 			(layer "F.Fab")
 			(uuid "a26bef30-2b25-48be-9d74-96706f757360")
 			(effects
@@ -10783,17 +10739,6 @@
 			)
 			(layer "F.Fab")
 			(uuid "d6029ac6-bd66-4a53-97eb-e8b7fcee1db7")
-		)
-		(fp_text user "K"
-			(at 0 -2.6 90)
-			(layer "F.SilkS")
-			(uuid "c477a602-c56e-4401-9644-6ec977675c11")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
 		)
 		(fp_text user "K"
 			(at 0 -2.6 90)
@@ -12433,6 +12378,18 @@
 		(fill none)
 		(layer "Edge.Cuts")
 		(uuid "4d922a3f-b822-4458-b429-1a5fe2051cdd")
+	)
+	(gr_text "RIS - SWITCH MODULE\nv1.0.0 - SAM DIXON"
+		(at 158.115 134.62 90)
+		(layer "F.SilkS")
+		(uuid "49f8b739-36a5-4686-8867-be0902219dbe")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify left bottom)
+		)
 	)
 	(segment
 		(start 157.48 81.28)

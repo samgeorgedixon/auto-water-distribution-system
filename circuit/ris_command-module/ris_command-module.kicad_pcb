@@ -76,7 +76,7 @@
 			(mirror no)
 			(drillshape 0)
 			(scaleselection 1)
-			(outputdirectory "gerber/")
+			(outputdirectory "ris_command-module_gerber/")
 		)
 	)
 	(net 0 "")
@@ -3076,6 +3076,18 @@
 		(fill none)
 		(layer "Edge.Cuts")
 		(uuid "c9c38ac7-7edb-4633-b606-9d5b1f7a4622")
+	)
+	(gr_text "RIS - COMMAND MODULE\nv1.0.0 - SAM DIXON"
+		(at 152.4 133.35 0)
+		(layer "F.SilkS")
+		(uuid "d1a1e946-4309-4a68-9eec-c179c04424bb")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify left bottom)
+		)
 	)
 	(segment
 		(start 132.08 121.92)

@@ -40,6 +40,9 @@ void SetupComponents() {
 
     Wire.begin();
 
+    portStates = {};
+    currentPortStates = {};
+
     if (!rtcExternal.begin()) {
         Serial.println("External RTC Not Found - Using Internal RTC.");
 
@@ -75,8 +78,8 @@ int GetTemp() {
     return temp;
 }
 bool GetWifiSwitchStatus() {
-    //return digitalRead(WIFI_SWITCH_PIN);
-    return true;
+    return digitalRead(WIFI_SWITCH_PIN);
+    //return true;
 }
 void SetLED(bool state) {
     digitalWrite(LED_PIN, state);
@@ -144,17 +147,20 @@ uint32_t ConvertTimeToSeconds(const Time& time) {
 void EnableSwitchPorts(std::vector<uint32_t> ports) {
     for (int i = 0; i < ports.size(); i++) {
         while (portStates.size() <= ports[i]) {
-            portStates.push_back(false);
+            portStates.push_back(0);
         }
-        portStates[ports[i]] = true;
+        Serial.printf("Enable Port: %d\n", ports[i]);
+        portStates[ports[i]] = 1;
+        Serial.printf("... Port: %d\n", portStates[ports[i]]);
     }
 }
 void DisableSwitchPorts(std::vector<uint32_t> ports) {
     for (int i = 0; i < ports.size(); i++) {
         while (portStates.size() <= ports[i]) {
-            portStates.push_back(false);
+            portStates.push_back(0);
         }
-        portStates[ports[i]] = false;
+        Serial.printf("Disable Port: %d\n", ports[i]);
+        portStates[ports[i]] = 0;
     }
 }
 
@@ -163,6 +169,10 @@ void UpdateSwitchPorts(int bitWidth) {
         return;
     }
 
+    digitalWrite(SWITCH_DATA_PIN, LOW);
+    digitalWrite(SWITCH_SRCLK_PIN, LOW);
+	digitalWrite(SWITCH_RCLK_PIN, LOW);
+    
     // Write Internally to 74HC595 Shift Register
     int remainingPorts = portStates.size();
     int portIndex = portStates.size() - 1;
@@ -170,15 +180,20 @@ void UpdateSwitchPorts(int bitWidth) {
     while (remainingPorts > 0) {
         int registerDataBits = (remainingPorts >= bitWidth) ? bitWidth : remainingPorts;
 
+        Serial.printf("Update Port Row: ");
+
         // Shift Data Bits
         for (int i = 0; i < registerDataBits; i++) {
-            digitalWrite(SWITCH_DATA_PIN, portStates[portIndex--]);
-            delay(1);
+            digitalWrite(SWITCH_DATA_PIN, portStates[portIndex]);
+
             digitalWrite(SWITCH_SRCLK_PIN, HIGH);
-            delay(1);
             digitalWrite(SWITCH_SRCLK_PIN, LOW);
-            delay(1);
+
+            Serial.printf("%d-%d ", portStates[portIndex], portIndex);
+
+            portIndex--;
         }
+        Serial.printf("\n");
 
         remainingPorts -= registerDataBits;
 
@@ -194,13 +209,12 @@ void UpdateSwitchPorts(int bitWidth) {
             }
         }
     }
-    digitalWrite(SWITCH_DATA_PIN, LOW);
-    delay(1);
     
     // Output 74HC595 Shift Register Internals
     digitalWrite(SWITCH_RCLK_PIN, HIGH);
-    delay(1);
     digitalWrite(SWITCH_RCLK_PIN, LOW);
+
+    digitalWrite(SWITCH_DATA_PIN, LOW);
 
     currentPortStates = portStates;
 }

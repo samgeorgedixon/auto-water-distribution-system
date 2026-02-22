@@ -15,12 +15,10 @@ void SetupProgram() {
 bool wifiOn = false;
 
 void UpdateProgram() {
-    UpdateSwitch(wifiOn);
-
     if (GetWifiSwitchStatus() && !wifiOn) {
         SetupNetwork();
         wifiOn = true;
-
+        
         SetLED(true);
         Serial.println("Wifi On");
         
@@ -28,13 +26,14 @@ void UpdateProgram() {
     } else if (!GetWifiSwitchStatus() && wifiOn) {
         StopNetwork();
         wifiOn = false;
-
+        
         SetLED(false);
         Serial.println("Wifi Off");
-
+        
         delay(20);
     }
-
+    UpdateSwitch(wifiOn);
+    
     if (wifiOn) {
         UpdateNetwork();
     }

@@ -215,6 +215,8 @@ void StartRoutine(SwitchRoutine& switchRoutine) {
     switchRoutine.done = false;
 }
 void StopRoutine(SwitchRoutine& switchRoutine) {
+    switchRoutine.newTime = int(switchRoutine.timeInterval) + GetTimeSeconds();
+
     if (switchRoutine.timeDuration != 0) {
         if (switchRoutine.staggerValves && switchRoutine.currentStaggerValveIndex < switchRoutine.valvePorts.size() - 1) {
             DisableSwitchPorts({ switchRoutine.valvePorts[switchRoutine.currentStaggerValveIndex] });
@@ -224,8 +226,6 @@ void StopRoutine(SwitchRoutine& switchRoutine) {
             EnableSwitchPorts({ switchRoutine.valvePorts[switchRoutine.currentStaggerValveIndex] });
 
             UpdateSwitchPorts(SWITCH_BIT_WIDTH);
-            
-            switchRoutine.timeDuration += GetCurrentTimeDuration(switchRoutine);
 
             return;
         }
@@ -236,8 +236,6 @@ void StopRoutine(SwitchRoutine& switchRoutine) {
             UpdateSwitchPorts(SWITCH_BIT_WIDTH);
         }
     }
-    
-    switchRoutine.newTime += switchRoutine.timeInterval;
     
     switchRoutine.done = true;
 }
@@ -259,21 +257,21 @@ void UpdateSwitch(bool wifiOn) {
         }
     }
 
-    if (smallestNewTime == 0xffffffff || wifiOn) {
-        return;
-    }
-
-    uint32_t smallestTimeGap = smallestNewTime - now;
-    if (smallestTimeGap > 2628000) { // > ~1 Month
-        LightSleep(smallestTimeGap - 1800); // Wakeup 30mins Before.
-    }
-    else if (smallestTimeGap > 86400) { // > 1 Day
-        LightSleep(smallestTimeGap - 120); // Wakeup 2mins Before.
-    }
-    else if (smallestTimeGap > 3600) { // > 1 Hour
-        LightSleep(smallestTimeGap - 10); // Wakeup 10secs Before.
-    }
-    else if (smallestTimeGap > 1) { // > 1 Sec
-        LightSleep(smallestTimeGap - 1); // Wakeup 1sec Before.
-    }
+    //if (smallestNewTime == 0xffffffff || wifiOn) {
+    //    return;
+    //}
+//
+    //uint32_t smallestTimeGap = smallestNewTime - now;
+    //if (smallestTimeGap > 2628000) { // > ~1 Month
+    //    LightSleep(smallestTimeGap - 1800); // Wakeup 30mins Before.
+    //}
+    //else if (smallestTimeGap > 86400) { // > 1 Day
+    //    LightSleep(smallestTimeGap - 120); // Wakeup 2mins Before.
+    //}
+    //else if (smallestTimeGap > 3600) { // > 1 Hour
+    //    LightSleep(smallestTimeGap - 10); // Wakeup 10secs Before.
+    //}
+    //else if (smallestTimeGap > 1) { // > 1 Sec
+    //    LightSleep(smallestTimeGap - 1); // Wakeup 1sec Before.
+    //}
 }

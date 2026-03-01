@@ -66,8 +66,8 @@ const char edit_routine_html[] PROGMEM = R"rawliteral(
         <label for="setNewTime">Set New Start Time:</label>
         <input type="checkbox" id="setNewTime" name="setNewTime"/>
         <div id="newTimeContainer">
-            <label>Time: <input type="time" required id="startTime" step="1"></label><br>
-            <label>Date: <input type="date" required id="startDate" min="2000-01-01" max="2100-01-01"></label><br>
+            <label>Time: <input type="time" id="startTime" step="1"></label><br>
+            <label>Date: <input type="date" id="startDate" min="2000-01-01" max="2100-01-01"></label><br>
         </div>
 
         <br>
@@ -83,11 +83,20 @@ const char edit_routine_html[] PROGMEM = R"rawliteral(
         newTimeContainer.style.display = setNewTime.checked ? "block" : "none";
         const staggerValves = document.getElementById("staggerValves");
 
+        const startTime = document.getElementById("startTime");
+        const startDate = document.getElementById("startDate");
+
         setNewTime.addEventListener("change", () => {
             if (setNewTime.checked) {
                 newTimeContainer.style.display = "block";
+
+                startTime.required = true;
+                startDate.required = true;
             } else {
                 newTimeContainer.style.display = "none";
+
+                startTime.required = false;
+                startDate.required = false;
             }
         });
 
@@ -362,8 +371,8 @@ const char edit_routine_html[] PROGMEM = R"rawliteral(
             const tempRangeDurations = Array.from(tempContainer.querySelectorAll("input[type=number]")).map(inp => parseInt(inp.value) || 0);
 
             // New time
-            const timeInput = document.getElementById("startTime").value;
-            const dateInput = document.getElementById("startDate").value;
+            const timeInput = startTime.value;
+            const dateInput = startDate.value;
             
             const [h, m, s = "0"] = timeInput.split(":");
             const [y, mm, d] = dateInput.split("-");

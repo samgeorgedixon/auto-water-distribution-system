@@ -7,6 +7,8 @@
 #include <Preferences.h>
 #include <ArduinoJson.h>
 
+#include "core.h"
+
 #include "components.h"
 #include "routines.h"
 
@@ -18,8 +20,8 @@
 #include "html-includes/time_html.h"
 #include "html-includes/wifi_html.h"
 
-String ssid = "RIS";
-String password ="admin123";
+String ssid = DEFAULT_SSID;
+String password = DEFAULT_PASSWORD;
 
 IPAddress localIP(192,168,1,1);
 IPAddress gateway(192,168,1,1);
@@ -81,7 +83,7 @@ void HandleGetTime() {
 
     client.stop();
 
-    Serial.println("Got Time");
+    LOGf("Got Time\n");
 }
 void HandleSetTime() {
     if (!server.hasArg("plain")) {
@@ -117,7 +119,7 @@ void HandleSetWifi() {
         delay(100);
         SetupNetwork();
 
-        Serial.println("Set SSID: " + ssid);
+        LOGf("Set SSID: %s\n", ssid.c_str());
         server.send(200, "text/plain", "Set SSID");
     } else if (server.hasArg("password")) {
         password = server.arg("password");
@@ -130,10 +132,10 @@ void HandleSetWifi() {
         delay(100);
         SetupNetwork();
 
-        Serial.println("Set Password: " + password);
+        LOGf("Set Password: %s\n", password.c_str());
         server.send(200, "text/plain", "Set Password");
     } else {
-        Serial.println("Invalid /set Request");
+        LOGf("Invalid /set Request\n");
         server.send(400, "text/plain", "Invalid /set Request");
     }
 }
@@ -241,10 +243,10 @@ void HandleRemoveRoutineAPI() {
         RemoveRoutine(index);
 
         String response = "Removed Routine: " + String(index);
-        Serial.println(response);
+        LOGf("%s\n", response.c_str());
         server.send(200, "text/plain", response);
     } else {
-        Serial.println("Invalid Remove Routine Request");
+        LOGf("Invalid Remove Routine Request\n");
         server.send(400, "text/plain", "Invalid Remove Routine Request");
     }
 }
@@ -289,9 +291,9 @@ void HandleGetRoutineAPI() {
 
         client.stop();
 
-        Serial.printf("Got Routine: %d\n", index);
+        LOGf("Got Routine: %d\n", index);
     } else {
-        Serial.println("Invalid Get Routine Request");
+        LOGf("Invalid Get Routine Request\n");
         server.send(400, "text/plain", "Invalid Get Routine Request");
     }
 }
@@ -319,7 +321,7 @@ void HandleGetAllRoutineAPI() {
     client.print("]");
     client.stop();
 
-    Serial.println("Got Routines");
+    LOGf("Got Routines\n");
 }
 
 void SwitchPortToJson(const SwitchPort &switchPort, DynamicJsonDocument& doc) {
@@ -367,7 +369,7 @@ void HandleGetAllSwitchPortAPI() {
     client.print("}");
     client.stop();
 
-    Serial.println("Got Switch Ports");
+    LOGf("Got Switch Ports\n");
 }
 void HandleSaveAllSwitchPortAPI() {
     if (!server.hasArg("plain")) {
@@ -407,7 +409,7 @@ void HandleSaveAllSwitchPortAPI() {
 
     SetSwitchPorts(newPorts);
 
-    Serial.println("Saved Switch Ports");
+    LOGf("Saved Switch Ports\n");
     server.send(200, "text/plain", "Saved Switch Ports");
 }
 
@@ -456,7 +458,7 @@ void SetupNetwork() {
     SetupServerHandles();
     server.begin();
 
-    Serial.println("Network Setup");
+    LOGf("Network Setup\n");
 }
 
 void StopNetwork() {
@@ -469,7 +471,7 @@ void StopNetwork() {
     esp_wifi_stop();
     esp_wifi_deinit();
 
-    Serial.println("Network Stopped");
+    LOGf("Network Stopped\n");
 }
 
 void UpdateNetwork() {

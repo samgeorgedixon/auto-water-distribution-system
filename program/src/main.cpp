@@ -1,12 +1,13 @@
 #include <Arduino.h>
 
+#include "core.h"
 #include "flow.h"
 
 void setup() {
-	Serial.begin(115200);
+	Serial.begin(SERIAL_BAUD_RATE);
 	SetupProgram();
 
-	Serial.println("ESP32 Setup");
+	LOGf("ESP32 Setup\n");
 }
 
 void loop() {

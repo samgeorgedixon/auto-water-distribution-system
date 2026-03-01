@@ -1,6 +1,8 @@
 #include "flow.h"
 #include <Arduino.h>
 
+#include "core.h"
+
 #include "components.h"
 #include "routines.h"
 #include "network.h"
@@ -20,7 +22,7 @@ void UpdateProgram() {
         wifiOn = true;
         
         SetLED(true);
-        Serial.println("Wifi On");
+        LOGf("Wifi On\n");
         
         delay(20);
     } else if (!GetWifiSwitchStatus() && wifiOn) {
@@ -28,7 +30,7 @@ void UpdateProgram() {
         wifiOn = false;
         
         SetLED(false);
-        Serial.println("Wifi Off");
+        LOGf("Wifi Off\n");
         
         delay(20);
     }

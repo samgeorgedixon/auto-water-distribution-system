@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <Preferences.h>
 
-#define SWITCH_BIT_WIDTH 6
+#include "core.h"
 
 Preferences routinePreferences; // Max Key Length: 15
 
@@ -11,10 +11,24 @@ std::vector<SwitchRoutine> switchRoutines = {};
 
 SwitchPorts switchPorts = { {}, {} };
 
+int GetCurrentTimeDuration(const SwitchRoutine& switchRoutine) {
+    if (switchRoutine.tempRangeDurations.size() == 0) {
+        return 0;
+    }
+    int temp = GetTemp();
+
+    for (int i = 0; i < switchRoutine.tempRangeDurations.size(); i += 2) {
+        if (temp < switchRoutine.tempRangeDurations[i]) {
+            return switchRoutine.tempRangeDurations[i + 1];
+        }
+    }
+    return switchRoutine.tempRangeDurations[switchRoutine.tempRangeDurations.size() - 1];
+}
+
 void SetPerminantRoutine(int index, SwitchRoutine& routine) {
     std::string routineName = "routine-" + std::to_string(index);
 
-    Serial.printf("SetPerminantRoutine: %s\n", routineName.c_str());
+    LOGf("SetPerminantRoutine: %s\n", routineName.c_str());
 
     routinePreferences.begin(routineName.c_str(), false);
     routinePreferences.putString("name", routine.name.c_str());
@@ -31,7 +45,8 @@ void SetPerminantRoutine(int index, SwitchRoutine& routine) {
 
     routinePreferences.putBytes("tempRangeDur", &routine.tempRangeDurations[0], routine.tempRangeDurations.size() * sizeof(int)); // Int32: 4 Char
     
-    //routinePreferences.putInt("newTime", routine.newTime);
+    routinePreferences.putInt("newTime", routine.newTime);
+
     routinePreferences.end();
 }
 void RemovePerminantRoutine(int index) {
@@ -66,11 +81,24 @@ SwitchRoutine GetPerminantRoutine(int index) {
 
     routinePreferences.getBytes("tempRangeDur", &routine.tempRangeDurations[0], tempRangeDurationsCount * sizeof(int)); // Int32: 4 Char
     
-    //routine.newTime = routinePreferences.getInt("newTime", GetTimeNowSeconds());
-    routine.newTime = GetTimeSeconds();
+    // Work Out Correct routine.newTime
+    routine.newTime = routinePreferences.getInt("newTime", GetTimeSeconds());
+    routine.timeDuration = GetCurrentTimeDuration(routine);
+
+    if (routine.timeDuration <= 0 && routine.timeInterval <= 0) {
+        routine.newTime = GetTimeSeconds();
+    }
+
+    if (routine.newTime < GetTimeSeconds()) {
+        uint32_t cycle = routine.timeDuration + routine.timeInterval;
+        uint32_t divisions = (GetTimeSeconds() - routine.newTime) / cycle;
+
+        routine.newTime += cycle * (divisions + 1);
+    }
+
+    routinePreferences.putInt("newTime", routine.newTime);
 
     routine.done = true;
-    routine.timeDuration = 0;
     routinePreferences.end();
 
     return routine;
@@ -97,54 +125,26 @@ const SwitchRoutine& GetRoutine(int index) {
 
     return switchRoutines[index];
 }
-void AddRoutine(SwitchRoutine routine, Time time) {
-    routine.newTime = ConvertTimeToSeconds(time);
-    routine.done = true;
-    routine.timeDuration = 0;
 
-    switchRoutines.push_back(routine);
-
-    SetPerminantRoutine(switchRoutines.size() - 1, routine);
-
-    routinePreferences.begin("routines", false);
-    routinePreferences.putInt("count", switchRoutines.size());
-    routinePreferences.end();
-
-    Serial.printf("Added Routine: %d\n", switchRoutines.size() - 1);
-}
-void EditRoutine(int index, SwitchRoutine newRoutine, Time time, bool newTimeSet) {
-    if (newTimeSet) {
-        newRoutine.newTime = ConvertTimeToSeconds(time);
-    } else {
-        newRoutine.newTime = switchRoutines[index].newTime;
+void DisableAllSwitchPorts() {
+    if (switchPorts.pumps.size() == 0 && switchPorts.valves.size() == 0) {
+        return;
     }
-    newRoutine.done = switchRoutines[index].done;
-    newRoutine.timeDuration = switchRoutines[index].timeDuration;
 
-    switchRoutines[index] = newRoutine;
+    uint32_t highestIndex = 0;
 
-    SetPerminantRoutine(index, newRoutine);
-
-    Serial.printf("Edited Routine: %d\n", index);
-}
-void RemoveRoutine(int index) {
-    for (int i = index; i < switchRoutines.size(); i++) {
-        RemovePerminantRoutine(i);
-
-        if (i == index) {
-            continue;
+    for (int i = 0; i < switchPorts.pumps.size(); i++) {
+        if (switchPorts.pumps[i].index > highestIndex) {
+            highestIndex = switchPorts.pumps[i].index;
         }
-
-        SetPerminantRoutine(i - 1, switchRoutines[i]);
+    }
+    for (int i = 0; i < switchPorts.valves.size(); i++) {
+        if (switchPorts.valves[i].index > highestIndex) {
+            highestIndex = switchPorts.valves[i].index;
+        }
     }
 
-    switchRoutines.erase(switchRoutines.begin() + index);
-
-    routinePreferences.begin("routines", false);
-    routinePreferences.putInt("count", switchRoutines.size());
-    routinePreferences.end();
-
-    Serial.printf("Removed Routine: %d\n", index);
+    DisableSwitchPorts({ highestIndex });
 }
 
 void ResetToPerminantSwitchPorts() {
@@ -153,17 +153,15 @@ void ResetToPerminantSwitchPorts() {
     int pumpsCount = routinePreferences.getInt("pumpsCount", 0);
     int valvesCount = routinePreferences.getInt("valvesCount", 0);
 
-    
     switchPorts.pumps.resize(pumpsCount);
     switchPorts.valves.resize(valvesCount);
     
     routinePreferences.getBytes("pumps", &switchPorts.pumps[0], pumpsCount * sizeof(SwitchPort));
     routinePreferences.getBytes("valves", &switchPorts.valves[0], valvesCount * sizeof(SwitchPort));
     
-    Serial.printf("pumpsCount: %d\n", switchPorts.pumps[0].index);
-    Serial.printf("valvesCount: %d\n", switchPorts.valves.size());
-
     routinePreferences.end();
+    
+    DisableAllSwitchPorts();
 }
 
 const SwitchPorts& GetSwitchPorts() {
@@ -181,20 +179,6 @@ void SetSwitchPorts(SwitchPorts ports) {
     routinePreferences.putBytes("valves", &switchPorts.valves[0], switchPorts.valves.size() * sizeof(SwitchPort));
     
     routinePreferences.end();
-}
-
-int GetCurrentTimeDuration(const SwitchRoutine& switchRoutine) {
-    if (switchRoutine.tempRangeDurations.size() == 0) {
-        return 0;
-    }
-    int temp = GetTemp();
-
-    for (int i = 0; i < switchRoutine.tempRangeDurations.size(); i += 2) {
-        if (temp < switchRoutine.tempRangeDurations[i]) {
-            return switchRoutine.tempRangeDurations[i + 1];
-        }
-    }
-    return switchRoutine.tempRangeDurations[switchRoutine.tempRangeDurations.size() - 1];
 }
 
 void StartRoutine(SwitchRoutine& switchRoutine) {
@@ -252,26 +236,89 @@ void UpdateSwitch(bool wifiOn) {
             StopRoutine(switchRoutines[i]);
         }
 
-        if (switchRoutines[i].newTime < smallestNewTime && switchRoutines[i].newTime > now) {
+        if (switchRoutines[i].newTime < smallestNewTime) {
             smallestNewTime = switchRoutines[i].newTime;
         }
     }
 
-    //if (smallestNewTime == 0xffffffff || wifiOn) {
-    //    return;
-    //}
-//
-    //uint32_t smallestTimeGap = smallestNewTime - now;
-    //if (smallestTimeGap > 2628000) { // > ~1 Month
-    //    LightSleep(smallestTimeGap - 1800); // Wakeup 30mins Before.
-    //}
-    //else if (smallestTimeGap > 86400) { // > 1 Day
-    //    LightSleep(smallestTimeGap - 120); // Wakeup 2mins Before.
-    //}
-    //else if (smallestTimeGap > 3600) { // > 1 Hour
-    //    LightSleep(smallestTimeGap - 10); // Wakeup 10secs Before.
-    //}
-    //else if (smallestTimeGap > 1) { // > 1 Sec
-    //    LightSleep(smallestTimeGap - 1); // Wakeup 1sec Before.
-    //}
+    if (smallestNewTime == 0xffffffff || wifiOn) {
+        return;
+    }
+
+    uint32_t smallestTimeGap = smallestNewTime - now;
+    if (smallestTimeGap > 2628000) { // > ~1 Month
+        LightSleep(smallestTimeGap - 1800); // Wakeup 30mins Before.
+    }
+    else if (smallestTimeGap > 86400) { // > 1 Day
+        LightSleep(smallestTimeGap - 120); // Wakeup 2mins Before.
+    }
+    else if (smallestTimeGap > 3600) { // > 1 Hour
+        LightSleep(smallestTimeGap - 10); // Wakeup 10secs Before.
+    }
+    else if (smallestTimeGap > 4) { // > 1 Sec
+        LightSleep(smallestTimeGap - 2); // Wakeup 1sec Before.
+    }
+}
+
+void AddRoutine(SwitchRoutine routine, Time time) {
+    routine.newTime = ConvertTimeToSeconds(time);
+    routine.done = true;
+    routine.timeDuration = 0;
+
+    switchRoutines.push_back(routine);
+
+    SetPerminantRoutine(switchRoutines.size() - 1, routine);
+
+    routinePreferences.begin("routines", false);
+    routinePreferences.putInt("count", switchRoutines.size());
+    routinePreferences.end();
+
+    LOGf("Added Routine: %d\n", switchRoutines.size() - 1);
+}
+void EditRoutine(int index, SwitchRoutine newRoutine, Time time, bool newTimeSet) {
+    if (newTimeSet) {
+        StopRoutine(switchRoutines[index]);
+
+        newRoutine.newTime = ConvertTimeToSeconds(time);
+    } else {
+        newRoutine.newTime = switchRoutines[index].newTime;
+    }
+    
+    newRoutine.done = switchRoutines[index].done;
+    
+    if (!switchRoutines[index].done) { // If Running
+        newRoutine.timeDuration = switchRoutines[index].timeDuration;
+    }
+    else {
+        newRoutine.timeDuration = 0;
+    }
+
+    switchRoutines[index] = newRoutine;
+
+    SetPerminantRoutine(index, newRoutine);
+
+    LOGf("Edited Routine: %d\n", index);
+}
+void RemoveRoutine(int index) {
+    if (!switchRoutines[index].done) { // If Running
+        StopRoutine(switchRoutines[index]);
+    }
+
+    for (int i = index; i < switchRoutines.size(); i++) {
+        RemovePerminantRoutine(i);
+
+        if (i == index) {
+            continue;
+        }
+
+        SetPerminantRoutine(i - 1, switchRoutines[i]);
+    }
+
+    switchRoutines.erase(switchRoutines.begin() + index);
+
+    routinePreferences.begin("routines", false);
+    routinePreferences.putInt("count", switchRoutines.size());
+    routinePreferences.end();
+
+    LOGf("Removed Routine: %d\n", index);
 }

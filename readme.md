@@ -34,6 +34,6 @@ You can then choose to power the pumps and valves by another source like mains o
 
 To take advantage of it in this scenario you can have both sides of the greenhouse on different valves because they may get a different amount of sunlight or have different varieties of plant so one side needs more water than the other.
 
-- Then you can have a pump that is operated with each valve at a time taking water out of a water tank and distributing it but also have another that fills the tank every couple weeks with more water from a water butt.
-- Due to only giving the plants the water they need they will have increased yields, and it will conserve water which is important when using a water butt as when there is little rainfall it will still have leftover water.
-- As well as this due to water duration being done based of temperature, across the year plants will get more water in the summer when they need it more and little to none in the winter when they don’t need it.
+1. Then you can have a pump that is operated with each valve at a time taking water out of a water tank and distributing it but also have another that fills the tank every couple weeks with more water from a water butt.
+2. Due to only giving the plants the water they need they will have increased yields, and it will conserve water which is important when using a water butt as when there is little rainfall it will still have leftover water.
+3. As well as this due to water duration being done based of temperature, across the year plants will get more water in the summer when they need it more and little to none in the winter when they don’t need it.

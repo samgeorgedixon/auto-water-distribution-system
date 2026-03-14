@@ -1,0 +1,335 @@
+#pragma once
+#include <Arduino.h>
+
+const char add_routine_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Routine - Regulated Irrigation System</title>
+
+    <style>
+        html {
+            font-family: Segoe UI;
+        }
+    </style>
+</head>
+<body>
+    <h1>Add Routine - Regulated Irrigation System</h1>
+
+    <a href="/"><button>RIS</button></a>
+    <a href="/routines"><button>View Routines</button></a>
+
+    <hr>
+
+    <form id="routineForm">
+        <label for="name">Name: </label>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <label for="timeInterval">Time Interval:</label>
+        <input type="number" min="1" step=".01" id="timeInterval" name="timeInterval" required>
+        <select id="timeIntervalUnit" name="timeIntervalUnit">
+            <option value="sec">Seconds</option>
+            <option value="min">Minutes</option>
+            <option value="hour">Hours</option>
+            <option value="day">Days</option>
+        </select>
+
+        <h3>Switch Ports</h3>
+
+        <p id="portPowerUsageSum"></p>
+        
+        <h4>Pumps</h4>
+        <button type="button" id="addPumpPort">Add Port</button>
+        <button type="button" id="removePumpPort">Remove Port</button>
+
+        <ul id="pumpPortsContainer"></ul>
+
+        <h4>Valves</h4>
+
+        <label for="staggerValves">Stagger Valves:</label>
+        <input type="checkbox" id="staggerValves"><br>
+
+        <button type="button" id="addValvePort">Add Port</button>
+        <button type="button" id="removeValvePort">Remove Port</button>
+
+        <ul id="valvePortsContainer"></ul>
+
+        <h3>Durations (s) at Temperatures (°C): In Order</h3>
+        <button type="button" id="addTempDuration">Add Temp Duration</button>
+        <button type="button" id="removeTempDuration">Remove Temp Duration</button>
+
+        <ul id="tempDurationsContainer"></ul>
+
+        <h3>Start Time:</h3>
+        <div id="specificTimeContainer">
+            <label>Time: <input type="time" required id="startTime" step="1"></label><br>
+            <label>Date: <input type="date" required id="startDate" min="2000-01-01" max="2100-01-01"></label><br>
+        </div>
+
+        <br>
+        <p id="errors" style="color:#FF0000;"></p>
+        <br>
+        <button type="submit">Add Routine</button>
+    </form>
+
+    <script>
+        const staggerValves = document.getElementById("staggerValves");
+
+        const unitToSeconds = {
+            sec: 1,
+            min: 60,
+            hour: 3600,
+            day: 86400
+        };
+        
+        function CreateCheckbox(container, isChecked) {
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = isChecked;
+            container.appendChild(checkbox);
+        }
+
+        function CreateTextInput(container) {
+            const input = document.createElement("input");
+            input.type = "number";
+            input.style.width = "50px";
+            container.appendChild(input);
+        }
+        function CreateNumberMinMaxInput(container, text, min, max) {
+            const input = document.createElement("input");
+            input.type = "number";
+
+            input.value = text;
+            input.min = min;
+            input.max = max;
+            
+            input.style.width = "50px";
+            container.appendChild(input);
+        }
+
+        function CreateLabel(container, text) {
+            const label = document.createElement("label");
+            label.innerText = text;
+            container.appendChild(label);
+        }
+
+        function CreatePortSelection(jsonList, container) {
+            const select = document.createElement("select");
+
+            const placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = "-- Select Port --";
+            placeholder.selected = true;
+            placeholder.disabled = true;
+            select.appendChild(placeholder);
+
+            jsonList.forEach(item => {
+                const option = document.createElement("option");
+                option.value = item.index;
+                option.textContent = `${item.index}: ${item.current}A x ${item.voltage}V = ${(item.current * item.voltage).toFixed(2)}W (${item.externalPower ? "External Power" : "Battery Power"})`;
+                select.appendChild(option);
+            });
+
+            container.appendChild(select);
+        }
+
+        const pumpPortsContainer = document.getElementById("pumpPortsContainer");
+        const valvePortsContainer = document.getElementById("valvePortsContainer");
+
+        let switchPorts = null;
+
+        const MAX_BATTERY_POWER = 3.8 * 3.3; // 3.8A * 3.3V = 12.54W
+
+        function CalculatePortPowerSum() {
+            if (!switchPorts) return 0;
+
+            const pumpSelects = pumpPortsContainer.querySelectorAll("select");
+            const pumpPorts = Array.from(pumpSelects).map(s => s.value).filter(v => v !== "");
+
+            const valveSelects = valvePortsContainer.querySelectorAll("select");
+            const valvePorts = Array.from(valveSelects).map(s => s.value).filter(v => v !== "");
+
+            let powerBatterySum = 0;
+
+            pumpPorts.forEach(pumpPort => {
+                const pump = switchPorts.pumps.find(p => Number(p.index) === Number(pumpPort));
+
+                if (pump && !pump.externalPower) {
+                    powerBatterySum += pump.current * pump.voltage;
+                };
+            });
+            if (staggerValves.checked) {
+                let largest = 0;
+
+                valvePorts.forEach(valvePort => {
+                    const valve = switchPorts.valves.find(v => Number(v.index) === Number(valvePort));
+
+                    let power = valve.current * valve.voltage;
+
+                    if (valve && !valve.externalPower && power > largest) {
+                        largest = power;
+                    };
+                });
+
+                powerBatterySum += largest;
+            }
+            else {
+                valvePorts.forEach(valvePort => {
+                    const valve = switchPorts.valves.find(v => Number(v.index) === Number(valvePort));
+
+                    if (valve && !valve.externalPower) {
+                        powerBatterySum += valve.current * valve.voltage;
+                    };
+                });
+            }
+
+            let portPowerUsageSum = document.getElementById("portPowerUsageSum");
+            portPowerUsageSum.innerText = `Port Battery Power Usage: ${powerBatterySum.toFixed(2)}W / ${MAX_BATTERY_POWER}W`;
+
+            return powerBatterySum;
+        }
+
+        document.getElementById("addPumpPort").addEventListener("click", () => {
+            const li = document.createElement("li");
+
+            CreatePortSelection(switchPorts.pumps, li);
+
+            pumpPortsContainer.appendChild(li);
+
+            CalculatePortPowerSum();
+        });
+        document.getElementById("removePumpPort").addEventListener("click", () => {
+            const last = pumpPortsContainer.lastElementChild;
+            if (last) last.remove();
+
+            CalculatePortPowerSum();
+        });
+        document.getElementById("addValvePort").addEventListener("click", () => {
+            const li = document.createElement("li");
+
+            CreatePortSelection(switchPorts.valves, li);
+
+            valvePortsContainer.appendChild(li);
+
+            CalculatePortPowerSum();
+        });
+        document.getElementById("removeValvePort").addEventListener("click", () => {
+            const last = valvePortsContainer.lastElementChild;
+            if (last) last.remove();
+
+            CalculatePortPowerSum();
+        });
+
+        document.getElementById("addTempDuration").addEventListener("click", () => {
+            const tempDurationsContainer = document.getElementById("tempDurationsContainer");
+
+            const li = document.createElement("li");
+
+            CreateLabel(li, "<= Temp: ");
+            CreateNumberMinMaxInput(li, "", -40, 80);
+
+            CreateLabel(li, " ≡ Duration: ");
+            CreateNumberMinMaxInput(li, "", 0, "");
+            
+            tempDurationsContainer.appendChild(li);
+        });
+        document.getElementById("removeTempDuration").addEventListener("click", () => {
+            const tempDurationsContainer = document.getElementById("tempDurationsContainer");
+
+            const last = tempDurationsContainer.lastElementChild;
+            if (last) last.remove();
+        });
+
+        pumpPortsContainer.addEventListener("input", e => {
+            if (e.target.tagName === "SELECT") {
+                CalculatePortPowerSum();
+            }
+        });
+        valvePortsContainer.addEventListener("input", e => {
+            if (e.target.tagName === "SELECT") {
+                CalculatePortPowerSum();
+            }
+        });
+        staggerValves.addEventListener('change', (event) => {
+            CalculatePortPowerSum();
+        });
+
+        document.getElementById("routineForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById("name").value;
+            
+            const timeValue = parseFloat(document.getElementById("timeInterval").value);
+            const timeIntervalUnit = document.getElementById("timeIntervalUnit").value;
+            const timeInterval = timeValue * (unitToSeconds[timeIntervalUnit] || 1);
+
+            // Ports
+            const pumpSelects = pumpPortsContainer.querySelectorAll("select");
+            const pumpPorts = Array.from(pumpSelects).map(s => s.value).filter(v => v !== "");
+
+            const valveSelects = valvePortsContainer.querySelectorAll("select");
+            const valvePorts = Array.from(valveSelects).map(s => s.value).filter(v => v !== "");
+
+            const powerBatterySum = CalculatePortPowerSum();
+            const errors = document.getElementById("errors");
+            errors.innerText = "";
+
+            if (powerBatterySum > MAX_BATTERY_POWER) { // 3.8A * 3.3V = 12.54W
+                errors.innerText = `* Port Battery Power Usage (${powerBatterySum.toFixed(2)}W) > Max Battery Power (${MAX_BATTERY_POWER}W): Decrease Port Power Usage`;
+                return;
+            }
+
+            // Temp Range Durations
+            const tempContainer = document.getElementById("tempDurationsContainer");
+
+            const tempRangeDurationsInputs = tempContainer.querySelectorAll("input[type=number]");
+            const tempRangeDurations = Array.from(tempRangeDurationsInputs).map(s => parseFloat(s.value)).filter(v => !isNaN(v));
+
+            // New time
+            const timeInput = document.getElementById("startTime").value;
+            const dateInput = document.getElementById("startDate").value;
+            
+            const [h, m, s = "0"] = timeInput.split(":");
+            const [y, mm, d] = dateInput.split("-");
+
+            const routineJson = {
+                name,
+                timeInterval,
+                timeIntervalUnit,
+                pumpPorts,
+                valvePorts,
+                staggerValves: staggerValves.checked,
+                tempRangeDurations,
+                newTimeSec: parseInt(s) || 0,
+                newTimeMin: parseInt(m) || 0,
+                newTimeHour: parseInt(h) || 0,
+                newTimeDayDate: parseInt(d) || 1,
+                newTimeMonth: parseInt(mm) || 1,
+                newTimeYear: parseInt(y) || 2000
+            };
+
+            const response = await fetch("/api/routine/add", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(routineJson)
+            });
+
+            window.location.href = "/routines";
+        });
+
+        async function LoadSwitchPorts() {
+            const response = await fetch("/api/switch-port/get-all");
+            switchPorts = await response.json();
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await LoadSwitchPorts();
+            CalculatePortPowerSum();
+        });
+    </script>
+</body>
+</html>
+
+)rawliteral";

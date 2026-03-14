@@ -1,0 +1,68 @@
+#pragma once
+#include <Arduino.h>
+
+const char wifi_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wifi - Regulated Irrigation System</title>
+
+    <style>
+        html {
+            font-family: Segoe UI;
+        }
+    </style>
+</head>
+<body>
+    <h1>Wifi - Regulated Irrigation System</h1>
+
+    <a href="/"><button>RIS</button></a>
+
+    <hr>
+
+    <form id="ssidForm">
+        <label for="ssid">SSID</label>
+        <input type="text" minlength="1" maxlength="31" name="ssid">
+        <input type="submit" value="Set SSID">
+    </form>
+    <form id="passwordForm">
+        <label for="password">Password </label>
+        <input type="password" minlength="3" name="password">
+        <input type="submit" value="Set Password">
+    </form>
+
+    <script>
+        const ssidForm = document.getElementById('ssidForm');
+        const passwordForm = document.getElementById('passwordForm');
+
+        ssidForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(ssidForm);
+
+            ssidForm.reset();
+            window.location.reload();
+
+            await fetch("/api/set-wifi", {
+                method: 'POST',
+                body: formData
+            });
+        });
+        passwordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(passwordForm);
+
+            passwordForm.reset();
+            window.location.reload();
+
+            await fetch("/api/set-wifi", {
+                method: 'POST',
+                body: formData
+            });
+        });
+    </script>
+</body>
+</html>
+
+)rawliteral";

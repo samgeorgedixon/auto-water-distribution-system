@@ -1,0 +1,9 @@
+OldVersions/
+*-backups/
+*.code-workspace
+
+*.bak
+*.tmp
+fp-info-cache
+~$*.xlsx
+~$*.pptx

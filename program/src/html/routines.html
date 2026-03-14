@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Routines - Regulated Irrigation System</title>
+
+    <style>
+        html {
+            font-family: Segoe UI;
+        }
+    </style>
+</head>
+<body>
+    <h1>Routines - Regulated Irrigation System</h1>
+
+    <a href="/"><button>RIS</button></a>
+
+    <hr>
+
+    <a href="/add-routine"><button>Add Routine</button></a><br>
+    
+    <ul id="routineList"></ul>
+
+    <script>
+        function DisplayRoutines(routines) {
+            const list = document.getElementById("routineList");
+            list.innerHTML = "";
+
+            routines.forEach((routine, index) => {
+                const li = document.createElement("li");
+
+                const text = document.createElement("span");
+                text.textContent = `${index}: ${routine.name}`;
+
+                const editBtn = document.createElement("button");
+                editBtn.textContent = "Edit";
+                editBtn.addEventListener("click", () => {
+                    window.location.href = `/edit-routine?index=${index}`;
+                });
+
+                const removeBtn = document.createElement("button");
+                removeBtn.textContent = "Remove";
+                removeBtn.addEventListener("click", async () => {
+                    await fetch(`/api/routine/remove?index=${index}`);
+
+                    LoadRoutines();
+                });
+
+                li.appendChild(text);
+                li.appendChild(editBtn);
+                li.appendChild(removeBtn);
+
+                list.appendChild(li);
+            });
+        }
+        
+        async function LoadRoutines() {
+            const response = await fetch("/api/routine/get-all");
+            const routines = await response.json();
+
+            DisplayRoutines(routines);
+        }
+
+        window.addEventListener("DOMContentLoaded", LoadRoutines);
+    </script>
+</body>
+</html>
